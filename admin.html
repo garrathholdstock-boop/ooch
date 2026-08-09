@@ -295,7 +295,12 @@ function eur(v){return O.fmtEur(v);}
 function eur2(v){try{return new Intl.NumberFormat('en-IE',{style:'currency',currency:'EUR'}).format(v);}catch(e){return '€'+v.toFixed(2);}}
 function pct(v,dp){return (v*100).toFixed(dp==null?1:dp)+'%';}
 function num(v){try{return new Intl.NumberFormat('en').format(Math.round(v));}catch(e){return Math.round(v);}}
-function art(p,col){var fn=O.ART[p.art]||O.ART.tee;return fn(O.COLOURS[col||p.cols[0]].hex,p.name);}
+/* A real photograph wins over the vector drawing wherever a product is shown.
+   Falls straight back to the drawing if p.img is absent or later removed. */
+function art(p,col){
+  if(p && p.img) return '<img src="'+esc(p.img)+'" alt="'+esc(p.alt||p.name)+'" loading="lazy" '+
+    'style="inline-size:100%;block-size:100%;object-fit:cover;display:block">';
+  var fn=O.ART[p.art]||O.ART.tee;return fn(O.COLOURS[col||p.cols[0]].hex,p.name);}
 var tid; function toast(m){var t=el('toast');t.textContent=m;t.classList.add('show');
   clearTimeout(tid);tid=setTimeout(function(){t.classList.remove('show');},2400);}
 
@@ -656,9 +661,17 @@ function productEditor(p){
         (i[0]==='block'?'!':'i')+'</span><span>'+esc(i[1])+'</span></div>';}).join('')+'</div></div>'
      : '<div class="panel"><div class="pad"><div class="issue ok"><span>✓</span><span>All details complete.</span></div></div></div>')+
     '<div class="panel"><h3>Photos</h3><div class="pad">'+
-      '<div style="display:flex;gap:.5em;flex-wrap:wrap">'+p.cols.map(function(c){
+      (p.img? '<div style="margin-block-end:.75em"><img src="'+esc(p.img)+'" alt="'+esc(p.alt||p.name)+'" '+
+              'style="max-inline-size:14rem;border-radius:.5rem;display:block"></div>'+
+              '<button class="btn ghost" onclick="removePhoto(\''+p.id+'\')">Remove photo</button>'
+            : '')+
+      '<div style="display:flex;gap:.5em;flex-wrap:wrap;margin-block:.75em">'+p.cols.map(function(c){
         return '<div class="thumb" style="inline-size:4rem">'+art(p,c)+'</div>';}).join('')+'</div>'+
-      '<p class="hint">Photos are cropped, resized and converted automatically on upload.</p></div></div>'+
+      '<div class="field"><label>Upload a photo</label>'+
+        '<input type="file" accept="image/jpeg,image/png,image/gif,image/webp" '+
+          'onchange="uploadPhoto(\''+p.id+'\',this)"></div>'+
+      '<p class="hint" id="up-'+p.id+'">'+(p.img? 'This photo replaces the drawing everywhere this product shows.'
+        : 'JPEG, PNG, GIF or WebP, up to 12 MB.')+'</p></div></div>'+
     '<div class="panel"><h3>The basics</h3><div class="pad">'+
       '<div class="field"><label>Name</label><input type="text" value="'+esc(p.name)+
         '" oninput="editField(\''+p.id+'\',\'name\',this.value)"></div>'+
@@ -1133,6 +1146,129 @@ window.toggleMk = function(c){ var m=O.state.markets[c]; if(!m)return; m.live=!m
   if(!m.live && O.state.settings.market===c){ O.state.settings.market='AU'; }
   O.commit(); toast(m.name+(m.live?' is live on the website':' switched off')); };
 window.editField = function(id,k,v){ var p=O.product(id); if(!p)return; p[k]=v; O.commit(); };
+
+/* ---- photos (added 2026-08-09) --------------------------------------------
+   The console had no upload path at all: no file input, no FileReader, no
+   FormData. The file is POSTed as the RAW request body, which is why there is
+   no multipart handling on either side — the server reads req body and sniffs
+   the magic bytes. Setting p.img then goes through O.commit() exactly like
+   every other field, so it saves and re-renders through the same path.        */
+/* ---- automatic resizing (added 2026-08-09) ---------------------------------
+   A photo straight off an iPhone is 4-5 MB and gets used at thumbnail size, so
+   the shop was downloading ~4 MB to draw a 4 rem square. Resizing happens HERE,
+   in the browser, before the upload — which also fixes the slow part, since the
+   phone then sends ~300 KB instead of 4 MB over mobile data. Nothing is
+   installed on the server to do this: an image library parsing untrusted files
+   on a box that also runs a live trading desk is a much bigger risk than a
+   canvas call, and there is no ImageMagick here to inherit its CVE history.
+   Every failure path falls back to sending the ORIGINAL — a photo that uploads
+   heavy always beats a photo that will not upload.                            */
+var MAX_EDGE = 1600, JPEG_Q = 0.82;
+function shrinkImage(file){
+  return new Promise(function(resolve){
+    /* A GIF may be animated and canvas would flatten it to one frame. Leave it. */
+    if(file.type === 'image/gif') return resolve({ blob:file, note:'GIF left as-is so animation survives' });
+    /* PNG keeps PNG so transparency is not flattened onto black; everything
+       else becomes JPEG, which is what a camera photo wants anyway. */
+    var outType = (file.type === 'image/png') ? 'image/png' : 'image/jpeg';
+
+    function draw(src, w, h){
+      var scale = Math.min(1, MAX_EDGE / Math.max(w, h));
+      if(scale === 1 && file.size < 900*1024) return resolve({ blob:file, note:'already small' });
+      var cw = Math.max(1, Math.round(w*scale)), ch = Math.max(1, Math.round(h*scale));
+      try{
+        var c = document.createElement('canvas'); c.width = cw; c.height = ch;
+        c.getContext('2d').drawImage(src, 0, 0, cw, ch);
+        c.toBlob(function(b){
+          if(!b || b.size >= file.size) return resolve({ blob:file, note:'original was already smaller' });
+          resolve({ blob:b, w:cw, h:ch });
+        }, outType, JPEG_Q);
+      } catch(e){ resolve({ blob:file, note:'could not resize, sent as-is' }); }
+    }
+    /* createImageBitmap with imageOrientation honours the EXIF rotation an
+       iPhone writes. Without it, portrait photos upload sideways. */
+    if(window.createImageBitmap){
+      createImageBitmap(file, { imageOrientation:'from-image' })
+        .then(function(bm){ draw(bm, bm.width, bm.height); })
+        .catch(viaImg);
+    } else viaImg();
+
+    function viaImg(){
+      var img = new Image(), url = URL.createObjectURL(file);
+      img.onload  = function(){ draw(img, img.naturalWidth, img.naturalHeight); URL.revokeObjectURL(url); };
+      img.onerror = function(){ URL.revokeObjectURL(url); resolve({ blob:file, note:'could not read, sent as-is' }); };
+      img.src = url;
+    }
+  });
+}
+
+window.uploadPhoto = function(id, input){
+  var f = input && input.files && input.files[0];
+  if(!f) return;
+  /* Re-query the hint every time rather than capturing it once: O.commit()
+     re-renders the whole panel, so a captured node is detached by the time the
+     "done" message is written and the size report would never be seen. */
+  function say(m){ var h = el('up-'+id); if(h) h.textContent = m; }
+  var wasMB = (f.size/1048576).toFixed(1);
+  say('Preparing ' + f.name + ' (' + wasMB + ' MB)…');
+
+  shrinkImage(f).then(function(r){
+    var blob = r.blob;
+    /* Check the size AFTER resizing, not before: a 40 MB photo is fine now
+       because it leaves here as a few hundred KB. Only a file that is still
+       too big once shrunk is genuinely too big. */
+    if(blob.size > 12*1024*1024){
+      say('Still ' + (blob.size/1048576).toFixed(1) + ' MB after resizing — the limit is 12 MB.');
+      input.value=''; return;
+    }
+    var nowMB = (blob.size/1048576).toFixed(2);
+    say(r.note ? ('Uploading — ' + r.note + '…')
+               : ('Uploading ' + nowMB + ' MB, resized to ' + r.w + '×' + r.h + ' from ' + wasMB + ' MB…'));
+    return doUpload(id, blob, input, say, wasMB, nowMB, r);
+  });
+};
+
+/* `shrink` is the resize result. It is NOT called `r` on purpose — the fetch
+   response below is `r`, and shadowing the two made the size message read from
+   the wrong object. */
+function doUpload(id, blob, input, say, wasMB, nowMB, shrink){
+  return fetch('/api/upload', { method:'POST', body:blob })
+    .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
+    .then(function(res){
+      if(!res.ok || !res.j || !res.j.url){
+        say((res.j && (res.j.detail || res.j.error)) || 'Upload failed.');
+        input.value=''; return;
+      }
+      var p = O.product(id);
+      if(!p){ say('That product has gone.'); return; }
+      p.img = res.j.url;
+      O.commit();                 /* saves, then re-renders so the photo appears */
+      /* Publish to the server map so the shop and every other device see it —
+         without this the photo exists only in THIS browser's storage, which is
+         exactly the bug this whole mechanism was added to fix. */
+      return fetch('/api/photos', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ id:id, url:res.j.url })
+      }).then(function(r){
+        toast(r.ok ? 'Photo added — live on the shop' : 'Photo saved here, but the shop did not get it');
+        say(shrink && shrink.w
+          ? ('Done — ' + shrink.w + '×' + shrink.h + ', ' + nowMB + ' MB (was ' + wasMB + ' MB).')
+          : ('Done — ' + nowMB + ' MB uploaded.'));
+      }).catch(function(){ toast('Photo saved here, but the shop did not get it'); });
+    })
+    .catch(function(e){ say('Upload failed: '+(e && e.message ? e.message : 'no connection')); });
+};
+window.removePhoto = function(id){
+  var p = O.product(id); if(!p) return;
+  delete p.img;                   /* falls back to the drawing everywhere */
+  O.commit();
+  /* Clear it on the server too, or the next load pulls the photo straight back. */
+  fetch('/api/photos', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ id:id, url:null })
+  }).then(function(){ toast('Photo removed'); })
+    .catch(function(){ toast('Removed here, but the shop may still show it'); });
+};
 window.editOverride = function(id,code,v){ var p=O.product(id); if(!p)return;
   if(v==='') delete p.overrides[code]; else p.overrides[code]=parseFloat(v); O.commit(); };
 window.editSetting = function(k,v){ O.state.settings[k]=v; O.commit(); };
@@ -1206,6 +1342,58 @@ function render(){
 O.on(function(state, remote){ render(); if(remote) toast('Updated in another tab'); });
 var rz; window.addEventListener('resize', function(){ clearTimeout(rz); rz=setTimeout(render,180); }, {passive:true});
 render();
+
+/* Photos are server-side (see the note in index.html). Pull them on load so the
+   console shows what the shop shows, whichever device or storage container this
+   browser happens to be using. */
+syncPhotos();
+setInterval(syncPhotos, 20000);
+setInterval(checkBuild, 20000);
+checkBuild();
+
+function syncPhotos(){
+  fetch('/api/photos', { cache:'no-store' })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(map){
+      if(!map) return;
+      var changed = false, orphans = [];
+      O.state.products.forEach(function(p){
+        var url = map[p.id] || null;
+        if(url){ if(p.img !== url){ p.img = url; changed = true; } }
+        else if(p.img){
+          /* ★ SELF-HEAL. This browser has a photo the server does not know
+             about — which is what a photo uploaded by an out-of-date page
+             looks like: the file reached the server, but nothing ever said
+             which product it belonged to. Publish it instead of deleting it,
+             so an upload can never be silently lost again. */
+          if(/^\/uploads\/[a-f0-9]{16}\.(jpg|png|gif|webp)$/.test(p.img)) orphans.push({ id:p.id, url:p.img });
+          else { delete p.img; changed = true; }
+        }
+      });
+      if(changed) O.commit();
+      orphans.forEach(function(o){
+        fetch('/api/photos', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(o) }).catch(function(){});
+      });
+      if(orphans.length) toast(orphans.length + ' photo' + (orphans.length>1?'s':'') + ' published to the shop');
+    })
+    .catch(function(){});
+}
+
+/* ★ Reload when a new version is deployed, rather than asking anyone to notice.
+   Only fires when the build id actually changes, which is only when the files
+   change — never on a normal poll. */
+var BUILD = null;
+function checkBuild(){
+  fetch('/api/health', { cache:'no-store' })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(h){
+      if(!h || !h.build) return;
+      if(BUILD === null){ BUILD = h.build; return; }
+      if(h.build !== BUILD){ location.reload(); }
+    })
+    .catch(function(){});
+}
 })();
 </script>
 </body>

@@ -1,0 +1,11 @@
+node_modules/
+*.log
+.DS_Store
+.env
+caddy_data/
+caddy_config/
+
+# Uploaded photos and the photo map live outside the repo, in /srv/ooch/data,
+# so a clone never carries someone's camera roll and a deploy never overwrites it.
+data/
+uploads/

@@ -407,6 +407,11 @@ function el(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function art(p, col){
+  /* A real photograph uploaded in the admin wins over the vector drawing.
+     Falls straight back to the drawing if there is no photo, so a product
+     without one looks exactly as it did before. */
+  if(p && p.img) return '<img src="'+esc(p.img)+'" alt="'+esc(p.alt||p.name)+'" loading="lazy" '+
+    'style="inline-size:100%;block-size:100%;object-fit:cover;display:block">';
   var fn = O.ART[p.art] || O.ART.tee;
   var key = col || (p.cols && p.cols[0]);
   var swatch = O.COLOURS[key];
@@ -782,6 +787,48 @@ O.on(function(state, remote){
 });
 
 render();
+
+/* ---- photos come from the SERVER, not from this browser --------------------
+   Added 2026-08-09. A photo uploaded on a phone showed in the admin but not
+   here, because "which photo belongs to which product" lived in localStorage —
+   and on iOS a Home Screen app gets a different storage container from Safari,
+   so one device can hold two catalogues that never see each other.
+   The server map is authoritative: it is applied over whatever this browser
+   thinks, on every load, so a photo shows up everywhere. Silent on failure —
+   if the API is down the shop simply renders the drawings, as it always did. */
+syncPhotos();
+setInterval(syncPhotos, 20000);   /* an admin edit lands here within ~20s */
+checkBuild();
+setInterval(checkBuild, 20000);
+
+/* Reload when a new version is deployed, so a shop left open on a phone is
+   never running yesterday's JavaScript. Fires only when the build id moves. */
+var BUILD = null;
+function checkBuild(){
+  fetch('/api/health', { cache:'no-store' })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(h){
+      if(!h || !h.build) return;
+      if(BUILD === null){ BUILD = h.build; return; }
+      if(h.build !== BUILD){ location.reload(); }
+    })
+    .catch(function(){});
+}
+function syncPhotos(){
+  fetch('/api/photos', { cache:'no-store' })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(map){
+      if(!map) return;
+      var changed = false;
+      O.state.products.forEach(function(p){
+        var url = map[p.id] || null;
+        if(url){ if(p.img !== url){ p.img = url; changed = true; } }
+        else if(p.img){ delete p.img; changed = true; }
+      });
+      if(changed) O.commit();   /* saves locally and re-renders */
+    })
+    .catch(function(){});
+}
 })();
 </script>
 </body>
