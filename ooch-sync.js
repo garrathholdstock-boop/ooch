@@ -107,13 +107,24 @@
   /* The uploaded-photo map is server-owned and per (product, colourway). It is
      pushed into the data layer rather than into `state`, so adopting another
      device's catalogue can never drop or resurrect a photo. */
+  var photosSeen = null;
   function pullPhotos() {
     fetch('/api/photos', { cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (m) {
         if (!m || !O.setUploadedPhotos) return;
+        var sig = JSON.stringify(m);
+        /* ★ Only touch the page when the map has actually CHANGED. This used to
+           run every 8s regardless and call O.commit(), which saves and is read
+           by the push listener below as a local edit — so every device pushed
+           state on a timer, and two devices bounced updates off each other
+           without stopping. The page rebuilt under your finger and swatch taps
+           were swallowed: the photos stopped changing colour. */
+        if (sig === photosSeen) return;
+        photosSeen = sig;
         O.setUploadedPhotos(m);
-        if (O.commit) O.commit();          /* re-render with the new photos */
+        if (O.refresh) O.refresh();        /* repaint only — no save, no push */
+        else if (O.commit) O.commit();
       })
       .catch(function () {});
   }

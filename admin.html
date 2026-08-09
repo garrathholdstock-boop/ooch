@@ -1549,7 +1549,14 @@ checkBuild();
 /* ★2026-08-09 photos are now per-COLOURWAY and resolved by O.photoOf, so this
    no longer writes p.img onto products. ooch-sync.js pulls the map and hands it
    to the data layer; this just keeps the console in step. */
+/* ★ ooch-sync.js already polls the photo map for BOTH pages and repaints only
+   when it has actually changed. This used to poll separately and call
+   O.commit() every 20s regardless — a save, a broadcast and a state push,
+   purely to redraw something that had not changed. Delegated instead. */
 function syncPhotos(){
+  if (window.OOCH_SYNC_PHOTOS) window.OOCH_SYNC_PHOTOS();
+}
+function syncPhotosOld(){
   fetch('/api/photos', { cache:'no-store' })
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(map){

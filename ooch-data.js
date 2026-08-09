@@ -513,6 +513,14 @@ var OOCH = {
      under someone's hands. Emits as REMOTE, because from this page's point of
      view the change did come from elsewhere. */
   reload: function () { state = load(); syncPalette(); emit(true); },
+  /* Re-render without SAVING. commit() writes localStorage, posts to the
+     BroadcastChannel and is treated by ooch-sync as a local edit to push — so
+     using it merely to repaint after the photo map arrives made every device
+     push state every 8 seconds, and two devices then bounced updates off each
+     other forever. The visible symptom was a page rebuilding under your finger,
+     which eats taps: swatches stopped changing the photo. Emitted as REMOTE so
+     the sync layer does not mistake a repaint for an edit. */
+  refresh: function () { emit(true); },
   colourKeys: function () { return Object.keys(COLOURS); },
   isCustom: function (key) { return !!(state.palette && state.palette[key]); },
   reset: function () { state = seed(); save(); emit(false); },
