@@ -354,10 +354,30 @@ function seed() {
 /* ================= STORE ================= */
 var listeners = [];
 var state = load();
+
+/* ★★ CUSTOM COLOURS (2026-08-09).
+   COLOURS above is the seven-swatch brand palette. Products reference it by key
+   (p.cols = ['baby','navy',...]) and — the part that constrains the design — so
+   do state.stock, state.history and every order row. A colour key is a JOIN KEY
+   across the whole store, not merely a swatch.
+   So custom colours live in state.palette and are MERGED INTO COLOURS on load.
+   Every existing lookup (O.COLOURS[key], ~15 call sites across both pages) then
+   resolves a custom colour with no change at all, and stock and orders keep
+   working because keys never change meaning.
+   state.palette is created lazily and the store version is deliberately NOT
+   bumped: load() only accepts v === 4, so raising it would discard every
+   catalogue the girls have already built. */
+function syncPalette() {
+  var p = state && state.palette;
+  if (!p) return;
+  for (var k in p) if (Object.prototype.hasOwnProperty.call(p, k)) COLOURS[k] = p[k];
+}
+syncPalette();
+
 var bc = null;
 try { bc = new BroadcastChannel(CHANNEL); } catch (e) { bc = null; }
-if (bc) bc.onmessage = function (e) { if (e.data === 'changed') { state = load(); emit(true); } };
-global.addEventListener('storage', function (e) { if (e.key === KEY) { state = load(); emit(true); } });
+if (bc) bc.onmessage = function (e) { if (e.data === 'changed') { state = load(); syncPalette(); emit(true); } };
+global.addEventListener('storage', function (e) { if (e.key === KEY) { state = load(); syncPalette(); emit(true); } });
 
 function load() {
   try {
@@ -383,6 +403,33 @@ var OOCH = {
   get state() { return state; },
   on: function (fn) { listeners.push(fn); return fn; },
   commit: function () { save(); emit(false); },
+
+  /* ---- colours ----
+     addColour returns the KEY, which is what products, stock and orders store.
+     Keys are generated and never reused, so renaming or recolouring a swatch
+     later cannot silently re-point historical stock or orders at a different
+     colour. */
+  addColour: function (name, hex) {
+    if (!state.palette) state.palette = {};
+    var key = 'c' + Math.random().toString(36).slice(2, 8);
+    while (COLOURS[key] || state.palette[key]) key = 'c' + Math.random().toString(36).slice(2, 8);
+    state.palette[key] = { name: name || 'New colour', hex: hex || '#8FC5E8' };
+    syncPalette();
+    return key;
+  },
+  /* Editing a BUILT-IN swatch writes an override into the store's own palette
+     rather than mutating the shared brand constant — otherwise one product's
+     edit would silently repaint every other product using that colour. */
+  setColour: function (key, name, hex) {
+    if (!state.palette) state.palette = {};
+    var cur = state.palette[key] || COLOURS[key] || {};
+    state.palette[key] = { name: name != null ? name : (cur.name || 'Colour'),
+                           hex:  hex  != null ? hex  : (cur.hex  || '#8FC5E8') };
+    syncPalette();
+    return key;
+  },
+  colourKeys: function () { return Object.keys(COLOURS); },
+  isCustom: function (key) { return !!(state.palette && state.palette[key]); },
   reset: function () { state = seed(); save(); emit(false); },
 
   /* ---- catalogue ---- */

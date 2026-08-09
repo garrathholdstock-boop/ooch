@@ -667,6 +667,41 @@ function productEditor(p){
             : '')+
       '<div style="display:flex;gap:.5em;flex-wrap:wrap;margin-block:.75em">'+p.cols.map(function(c){
         return '<div class="thumb" style="inline-size:4rem">'+art(p,c)+'</div>';}).join('')+'</div>'+
+      '</div></div>'+
+    /* ★ COLOUR EDITOR (2026-08-09, operator request: "sometimes 1 colour,
+       sometimes 5 — they need to pick the number and the colours").
+       Each row edits one colourway: the swatch itself, its name, and remove.
+       A colour key is a join key for stock and past orders, so removing one
+       here only takes it off THIS product — the key and its history survive. */
+    '<div class="panel"><h3>Colours</h3><div class="pad">'+
+      '<p class="hint" style="margin-top:0">'+p.cols.length+' colour'+(p.cols.length===1?'':'s')+
+        ' on this product. Add as many as you like, or take it down to one.</p>'+
+      p.cols.map(function(c, i){
+        var sw = O.COLOURS[c] || { name:c, hex:'#cccccc' };
+        return '<div style="display:flex;gap:.6em;align-items:center;margin-block-end:.6em;flex-wrap:wrap">'+
+          '<input type="color" value="'+esc(sw.hex)+'" title="Pick a colour" '+
+            'style="inline-size:3rem;block-size:2.4rem;padding:0;border:none;background:none;cursor:pointer" '+
+            'onchange="setColourHex(\''+p.id+'\',\''+c+'\',this.value)">'+
+          '<input type="text" value="'+esc(sw.name)+'" aria-label="Colour name" '+
+            'style="flex:1 1 8rem;min-inline-size:7rem" '+
+            'oninput="setColourName(\''+p.id+'\',\''+c+'\',this.value)">'+
+          (p.cols.length>1
+            ? '<button class="btn ghost" onclick="removeColour(\''+p.id+'\',\''+c+'\')">Remove</button>'
+            : '<span class="hint" style="margin:0">last one</span>')+
+        '</div>';
+      }).join('')+
+      '<div style="display:flex;gap:.5em;flex-wrap:wrap;margin-block-start:.75em">'+
+        '<button class="btn" onclick="addColour(\''+p.id+'\')">Add a colour</button>'+
+      '</div>'+
+      '<p class="hint">Pick from the brand palette by tapping a swatch below, or use the colour picker for anything you like.</p>'+
+      '<div style="display:flex;gap:.4em;flex-wrap:wrap">'+
+        O.colourKeys().filter(function(k){ return p.cols.indexOf(k)<0; }).map(function(k){
+          var s = O.COLOURS[k];
+          return '<button title="'+esc(s.name)+'" onclick="addExistingColour(\''+p.id+'\',\''+k+'\')" '+
+            'style="inline-size:2rem;block-size:2rem;border-radius:50%;border:1px solid rgba(0,0,0,.15);'+
+            'background:'+esc(s.hex)+';cursor:pointer"></button>';
+        }).join('')+
+      '</div>'+
       '<div class="field"><label>Upload a photo</label>'+
         '<input type="file" accept="image/jpeg,image/png,image/gif,image/webp" '+
           'onchange="uploadPhoto(\''+p.id+'\',this)"></div>'+
@@ -1282,6 +1317,35 @@ function doUpload(id, blob, input, say, wasMB, nowMB, shrink){
     })
     .catch(function(e){ say('Upload failed: '+(e && e.message ? e.message : 'no connection')); });
 };
+/* ---- colours (2026-08-09) --------------------------------------------------
+   A colour key is shared: stock rows, past orders and other products may all
+   reference it. So editing the SWATCH edits it everywhere it is used, which is
+   what "rename navy" should do — while adding and removing colours only ever
+   touches this product's own list. Removing never deletes the key itself, so
+   sales history keeps resolving to a real colour name.                        */
+window.addColour = function(pid){
+  var p = O.product(pid); if(!p) return;
+  var key = O.addColour('New colour', '#8FC5E8');
+  p.cols.push(key);
+  O.commit();
+  toast('Colour added — pick it and give it a name');
+};
+window.addExistingColour = function(pid, key){
+  var p = O.product(pid); if(!p) return;
+  if(p.cols.indexOf(key) > -1) return;
+  p.cols.push(key);
+  O.commit();
+};
+window.removeColour = function(pid, key){
+  var p = O.product(pid); if(!p) return;
+  if(p.cols.length <= 1){ toast('A product needs at least one colour'); return; }
+  p.cols = p.cols.filter(function(c){ return c !== key; });
+  O.commit();
+  toast('Colour removed from this product');
+};
+window.setColourHex = function(pid, key, hex){ O.setColour(key, null, hex); O.commit(); };
+window.setColourName = function(pid, key, name){ O.setColour(key, name, null); O.commit(); };
+
 window.removePhoto = function(id){
   var p = O.product(id); if(!p) return;
   delete p.img;                   /* falls back to the drawing everywhere */
