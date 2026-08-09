@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#8FC9EE">
+<meta name="description" content="Once it's gone it's gone. New drops every month.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ooch">
+<meta name="format-detection" content="telephone=no">
+<title>ooch — Find your ooch</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%238FC9EE'/%3E%3Ctext x='32' y='44' font-family='Georgia,serif' font-style='italic' font-size='30' fill='white' text-anchor='middle'%3Eo%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%238FC9EE'/%3E%3Ctext x='90' y='122' font-family='Georgia,serif' font-style='italic' font-size='84' fill='white' text-anchor='middle'%3Eooch%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Pacifico&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ==================================================================
+   FLUID FOUNDATION
+   Every size is a clamp() between a phone minimum and a desktop
+   maximum, interpolated on viewport width. There are no breakpoint
+   jumps anywhere in the type or spacing — the page grows smoothly
+   from a 320px iPhone SE to a 4K monitor.
+================================================================== */
+:root{
+  /* fluid type scale — min at 320px, max at 1400px */
+  --f-xs:  clamp(0.72rem, 0.68rem + 0.18vw, 0.82rem);
+  --f-sm:  clamp(0.82rem, 0.78rem + 0.22vw, 0.95rem);
+  --f-base:clamp(0.95rem, 0.90rem + 0.26vw, 1.10rem);
+  --f-md:  clamp(1.05rem, 0.98rem + 0.36vw, 1.30rem);
+  --f-lg:  clamp(1.35rem, 1.15rem + 1.00vw, 2.10rem);
+  --f-xl:  clamp(1.90rem, 1.40rem + 2.40vw, 3.40rem);
+  --f-hero:clamp(3.60rem, 1.90rem + 14.0vw, 10.5rem);
+
+  /* fluid space scale */
+  --s-1: clamp(0.25rem, 0.22rem + 0.14vw, 0.4rem);
+  --s-2: clamp(0.5rem,  0.44rem + 0.28vw, 0.8rem);
+  --s-3: clamp(0.75rem, 0.66rem + 0.42vw, 1.2rem);
+  --s-4: clamp(1rem,    0.86rem + 0.66vw, 1.75rem);
+  --s-5: clamp(1.5rem,  1.25rem + 1.10vw, 2.75rem);
+  --s-6: clamp(2.2rem,  1.70rem + 2.20vw, 4.5rem);
+  --s-7: clamp(3.0rem,  2.20rem + 3.60vw, 7.0rem);
+
+  --gutter: clamp(0.9rem, 0.5rem + 2.2vw, 2.5rem);
+  --maxw: 84rem;
+  --radius: clamp(0.9rem, 0.7rem + 0.8vw, 1.6rem);
+
+  --blue:#8FC9EE; --blue-mid:#5FB0E0; --blue-deep:#2C7BB8;
+  --ink:#14304A; --ink-soft:#5B7A96; --line:#DDEBF7;
+  --wash:#EFF7FD; --paper:#fff;
+  --shadow: 0 2px 18px rgba(24,70,110,.07);
+  --shadow-lg: 0 12px 40px rgba(24,70,110,.14);
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
+}
+body{
+  margin:0;font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  font-size:var(--f-base);line-height:1.55;color:var(--ink);background:var(--paper);
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  overflow-x:hidden;
+  /* iPhone: never let content sit under the notch or home indicator */
+  padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);
+}
+img,svg{max-width:100%;height:auto;display:block}
+button,input,select{font:inherit;color:inherit;margin:0}
+button{cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+h1,h2,h3,h4{font-family:'Baloo 2',cursive;margin:0;line-height:1.08;letter-spacing:-.02em;font-weight:700}
+a{color:inherit}
+:focus-visible{outline:3px solid var(--blue-deep);outline-offset:3px;border-radius:.4rem}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+.wrap{width:100%;max-width:var(--maxw);margin-inline:auto;padding-inline:var(--gutter)}
+
+/* ---------- announcement ---------- */
+.announce{
+  background:var(--ink);color:#fff;text-align:center;font-size:var(--f-xs);
+  font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  padding:calc(var(--s-2) + env(safe-area-inset-top)) var(--gutter) var(--s-2);
+}
+.announce[hidden]{display:none}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:40;background:rgba(255,255,255,.94);
+  border-bottom:1px solid var(--line);
+}
+@supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  header{-webkit-backdrop-filter:saturate(180%) blur(14px);backdrop-filter:saturate(180%) blur(14px)}
+}
+.bar{display:flex;align-items:center;gap:var(--s-3);min-height:clamp(3.2rem,2.8rem + 1.4vw,4.2rem)}
+.mark{
+  font-family:'Pacifico','Baloo 2',cursive;font-weight:400;color:var(--blue-deep);
+  font-size:clamp(1.6rem,1.2rem + 1.7vw,2.4rem);line-height:1;margin-right:auto;
+  background:none;border:0;padding:0;
+}
+.navlinks{display:flex;gap:var(--s-4);align-items:center}
+.navlinks button{
+  background:none;border:0;font-weight:700;font-size:var(--f-sm);color:var(--ink-soft);padding:var(--s-1) 0;
+}
+.navlinks button:hover,.navlinks button[aria-current="true"]{color:var(--ink)}
+@media (max-width:52rem){ .navlinks{display:none} }
+.mkbtn{
+  display:flex;align-items:center;gap:.4em;background:var(--wash);border:1px solid var(--line);
+  border-radius:999px;padding:.45em .8em;font-weight:800;font-size:var(--f-xs);
+}
+.mkbtn .cc{background:var(--blue-deep);color:#fff;border-radius:.3em;padding:.1em .4em;letter-spacing:.06em}
+.bagbtn{
+  background:var(--ink);color:#fff;border:0;border-radius:999px;
+  padding:.55em 1em;font-weight:800;font-size:var(--f-xs);white-space:nowrap;
+}
+
+/* ---------- hero ---------- */
+.hero{
+  background:linear-gradient(168deg,var(--blue) 0%,var(--blue-mid) 100%);
+  color:#fff;text-align:center;padding:var(--s-6) var(--gutter) 0;
+  border-end-start-radius:clamp(1.5rem,1rem + 2vw,3rem);
+  border-end-end-radius:clamp(1.5rem,1rem + 2vw,3rem);
+  overflow:hidden;position:relative;
+}
+.hero .kick{
+  font-weight:700;font-size:var(--f-sm);letter-spacing:.34em;text-transform:uppercase;
+  opacity:.94;margin:0;
+}
+.hero .word{
+  font-family:'Pacifico','Baloo 2',cursive;
+  font-size:var(--f-hero);line-height:1.02;margin:.02em 0 0;font-weight:400;
+  letter-spacing:-.01em;text-shadow:0 .06em .2em rgba(20,60,100,.16);
+}
+.hero .line{font-size:var(--f-md);font-weight:600;opacity:.95;margin:var(--s-4) auto var(--s-5);max-width:26ch}
+.hero .cta{
+  display:inline-block;background:#fff;color:var(--blue-deep);border:0;border-radius:999px;
+  padding:.75em 2em;font-weight:800;font-size:var(--f-base);margin-bottom:var(--s-6);
+  box-shadow:0 .3em 1.2em rgba(20,60,100,.2);
+}
+
+/* ---------- ticker ---------- */
+.ticker{
+  background:var(--ink);color:#fff;overflow:hidden;white-space:nowrap;
+  font-family:'Baloo 2',cursive;font-weight:600;font-size:var(--f-xs);
+  letter-spacing:.12em;text-transform:uppercase;padding:var(--s-2) 0;
+}
+.ticker span{display:inline-block;white-space:nowrap;animation:tick 40s linear infinite;will-change:transform}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+/* ---------- sections ---------- */
+section{padding-block:var(--s-6)}
+.shead{margin-bottom:var(--s-4)}
+.shead h2{font-size:var(--f-xl)}
+.shead p{color:var(--ink-soft);font-size:var(--f-base);margin:var(--s-2) 0 0;max-width:52ch}
+
+/* ---------- country strip ---------- */
+.strip{background:var(--wash);border:1px solid var(--line);border-radius:var(--radius);padding:var(--s-4)}
+.strip h3{font-size:var(--f-md)}
+.strip .sub{color:var(--ink-soft);font-size:var(--f-sm);margin:.3em 0 var(--s-3)}
+.flags{display:flex;gap:var(--s-2);flex-wrap:wrap}
+.flags button{
+  border:1px solid var(--line);background:#fff;border-radius:999px;
+  padding:.55em 1em;font-weight:800;font-size:var(--f-sm);color:var(--ink-soft);
+}
+.flags button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.flags button:disabled{opacity:.42;cursor:not-allowed}
+.facts{
+  display:grid;gap:var(--s-2);margin-top:var(--s-3);
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr));
+}
+.fact{background:#fff;border:1px solid var(--line);border-radius:calc(var(--radius) * .65);padding:var(--s-3)}
+.fact small{display:block;font-size:var(--f-xs);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-soft);font-weight:800;margin-bottom:.25em}
+.fact b{font-size:var(--f-sm);font-weight:700;line-height:1.35}
+
+/* ---------- product grid ----------
+   min() stops the minmax floor from overflowing on a 320px screen. */
+.grid{
+  display:grid;gap:var(--s-3);
+  grid-template-columns:repeat(auto-fill,minmax(min(100%,13.5rem),1fr));
+}
+.card{
+  background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow);
+  transition:transform .22s ease,box-shadow .22s ease;
+}
+@media (hover:hover){ .card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)} }
+.shot{aspect-ratio:4/5;background:var(--wash);display:grid;place-items:center;position:relative;padding:12%}
+@supports not (aspect-ratio:1){ .shot{height:0;padding-bottom:125%;position:relative} }
+.badge{
+  position:absolute;inset-block-start:var(--s-2);inset-inline-start:var(--s-2);
+  background:var(--ink);color:#fff;border-radius:999px;padding:.25em .7em;
+  font-family:'Baloo 2',cursive;font-size:var(--f-xs);letter-spacing:.08em;text-transform:uppercase;font-weight:600;
+}
+.badge.low{background:#B4703A}
+.info{padding:var(--s-3);display:flex;flex-direction:column;gap:var(--s-2);flex:1}
+.info h3{font-size:var(--f-base);font-weight:800;font-family:'Nunito',sans-serif;letter-spacing:-.01em}
+.price{font-family:'Baloo 2',cursive;font-size:var(--f-md);font-weight:700;color:var(--blue-deep)}
+.taxline{font-size:var(--f-xs);color:var(--ink-soft);margin-top:-.5em}
+.sws{display:flex;gap:.35em;flex-wrap:wrap}
+.sw{
+  inline-size:1.4em;block-size:1.4em;border-radius:50%;border:2px solid #fff;padding:0;
+  box-shadow:0 0 0 1.5px var(--line);
+}
+.sw[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--ink)}
+.addbtn{
+  margin-top:auto;background:var(--blue-deep);color:#fff;border:0;
+  border-radius:calc(var(--radius) * .55);padding:.75em;font-weight:800;font-size:var(--f-sm);width:100%;
+}
+.addbtn[disabled]{background:#B9CEDE}
+
+/* ---------- signature ---------- */
+.sig{
+  display:grid;gap:var(--s-5);align-items:center;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));
+}
+.sig .art{background:var(--wash);border-radius:var(--radius);padding:var(--s-6);display:grid;place-items:center}
+.sig .art svg{width:min(100%,22rem)}
+.sig h2{font-size:var(--f-xl)}
+.sig p{color:var(--ink-soft);margin:var(--s-3) 0}
+.tiles{display:grid;gap:var(--s-2);grid-template-columns:repeat(auto-fit,minmax(min(100%,8rem),1fr));margin-top:var(--s-3)}
+.tiles div{background:var(--wash);border-radius:calc(var(--radius)*.6);padding:var(--s-3);font-size:var(--f-sm)}
+.tiles b{display:block;font-family:'Baloo 2',cursive;font-size:var(--f-md)}
+
+/* ---------- shades ---------- */
+.shades{display:flex;gap:var(--s-2);flex-wrap:wrap}
+.shades button{
+  border:0;padding:0;border-radius:calc(var(--radius)*.6);overflow:hidden;
+  inline-size:clamp(3.4rem,2.4rem + 3.6vw,5.6rem);aspect-ratio:1;
+  box-shadow:0 0 0 1.5px var(--line);position:relative;
+}
+.shades button[aria-pressed="true"]{box-shadow:0 0 0 3px var(--ink)}
+.shades span{position:absolute;inset-block-end:0;inset-inline:0;background:rgba(255,255,255,.9);
+  font-size:var(--f-xs);font-weight:800;padding:.15em}
+
+/* ---------- categories ---------- */
+.cats{display:grid;gap:var(--s-3);grid-template-columns:repeat(auto-fit,minmax(min(100%,14rem),1fr))}
+.cat{
+  border:1px solid var(--line);border-radius:var(--radius);padding:var(--s-4);
+  background:var(--wash);text-align:start;display:flex;flex-direction:column;gap:.3em;
+}
+.cat b{font-family:'Baloo 2',cursive;font-size:var(--f-md);font-weight:700}
+.cat span{color:var(--ink-soft);font-size:var(--f-sm)}
+.cat em{font-style:normal;color:var(--blue-deep);font-weight:800;font-size:var(--f-xs);margin-top:.4em}
+
+/* ---------- quiz ---------- */
+.quiz{background:var(--wash);border-radius:var(--radius);padding:var(--s-5);text-align:center}
+.qopts{display:flex;gap:var(--s-2);flex-wrap:wrap;justify-content:center;margin-top:var(--s-3)}
+.qopts button{
+  border:1px solid var(--line);background:#fff;border-radius:999px;
+  padding:.65em 1.4em;font-weight:800;font-size:var(--f-sm);
+}
+.qopts button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+
+/* ---------- promise ---------- */
+.promise{background:var(--ink);color:#fff;border-radius:var(--radius);padding:var(--s-5)}
+.promise h2{font-size:var(--f-lg)}
+.promise p{opacity:.86;margin:var(--s-2) 0 var(--s-4);max-width:50ch}
+.pays{display:flex;gap:.4em;flex-wrap:wrap}
+.pays span{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.2);
+  border-radius:.5em;padding:.35em .7em;font-size:var(--f-xs);font-weight:700}
+
+/* ---------- newsletter ---------- */
+.news{background:var(--wash);border-radius:var(--radius);padding:var(--s-5);text-align:center}
+.newsform{display:flex;gap:var(--s-2);max-width:26rem;margin:var(--s-3) auto 0;flex-wrap:wrap}
+/* 16px minimum stops iOS zooming the whole page when the field focuses */
+.newsform input{flex:1 1 12rem;min-width:0;font-size:max(16px,var(--f-base));
+  border:1px solid var(--line);border-radius:999px;padding:.7em 1.1em;background:#fff}
+.newsform button{background:var(--ink);color:#fff;border:0;border-radius:999px;padding:.7em 1.4em;font-weight:800}
+
+/* ---------- footer ---------- */
+footer{
+  border-top:1px solid var(--line);margin-top:var(--s-6);
+  padding-block:var(--s-5) calc(var(--s-6) + env(safe-area-inset-bottom));
+  color:var(--ink-soft);font-size:var(--f-sm);
+}
+footer .cols{display:grid;gap:var(--s-4);grid-template-columns:repeat(auto-fit,minmax(min(100%,11rem),1fr))}
+footer h4{font-size:var(--f-sm);color:var(--ink);margin-bottom:var(--s-2);font-family:'Nunito',sans-serif;font-weight:800}
+footer ul{list-style:none;padding:0;margin:0;display:grid;gap:.4em}
+
+/* ---------- drawer (bag / market) ---------- */
+.scrim{position:fixed;inset:0;background:rgba(14,40,64,.42);opacity:0;pointer-events:none;
+  transition:opacity .25s;z-index:60}
+.scrim.on{opacity:1;pointer-events:auto}
+.drawer{
+  position:fixed;inset-block:0;inset-inline-end:0;z-index:70;background:#fff;
+  inline-size:min(26rem,100%);transform:translateX(101%);transition:transform .3s cubic-bezier(.3,.8,.3,1);
+  display:flex;flex-direction:column;box-shadow:var(--shadow-lg);
+  padding-block-end:env(safe-area-inset-bottom);
+}
+.drawer.on{transform:translateX(0)}
+.drawer header{position:static;display:flex;align-items:center;gap:var(--s-2);
+  padding:var(--s-4);border-bottom:1px solid var(--line);background:none}
+.drawer header h2{font-size:var(--f-lg);margin-right:auto}
+.drawer .body{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--s-3) var(--s-4)}
+.drawer .foot{border-top:1px solid var(--line);padding:var(--s-4)}
+.xbtn{background:var(--wash);border:0;border-radius:50%;inline-size:2.2em;block-size:2.2em;font-size:var(--f-md);line-height:1}
+.bagrow{display:flex;gap:var(--s-3);align-items:center;padding-block:var(--s-3);border-bottom:1px solid var(--line)}
+.bagrow .th{inline-size:3.4rem;background:var(--wash);border-radius:.6em;padding:.4em;flex-shrink:0}
+.bagrow b{display:block;font-size:var(--f-sm)}
+.bagrow span{font-size:var(--f-xs);color:var(--ink-soft)}
+.checkout{width:100%;background:var(--ink);color:#fff;border:0;border-radius:999px;padding:.9em;font-weight:800;font-size:var(--f-base)}
+
+/* ---------- iPhone-specific layer ----------
+   Applied only when we detect an iOS device. Bottom tab bar, thumb-
+   reachable actions, safe-area padding, and momentum scrolling. */
+.tabbar{display:none}
+body.ios .tabbar,body.touch-narrow .tabbar{
+  display:flex;position:fixed;inset-block-end:0;inset-inline:0;z-index:50;
+  background:rgba(255,255,255,.96);border-top:1px solid var(--line);
+  padding:.4em var(--gutter) calc(.4em + env(safe-area-inset-bottom));
+}
+@supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  .tabbar{-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+}
+.tabbar button{
+  flex:1;background:none;border:0;display:flex;flex-direction:column;align-items:center;gap:.15em;
+  font-size:.72rem;font-weight:800;color:var(--ink-soft);padding:.35em 0;letter-spacing:.02em;
+  min-block-size:2.9rem; /* 44px+ tap target */
+}
+.tabbar button[aria-current="true"]{color:var(--blue-deep)}
+.tabbar .ic{font-size:1.15rem;line-height:1}
+body.ios,body.touch-narrow{padding-block-end:4.6rem}
+body.ios .drawer .body,body.ios .bodyscroll{-webkit-overflow-scrolling:touch}
+
+/* ---------- toast ---------- */
+.toast{
+  position:fixed;inset-inline:0;inset-block-end:calc(1.2rem + env(safe-area-inset-bottom));
+  margin-inline:auto;inline-size:fit-content;max-inline-size:90vw;
+  background:var(--ink);color:#fff;padding:.8em 1.2em;border-radius:.9em;
+  font-weight:700;font-size:var(--f-sm);box-shadow:var(--shadow-lg);
+  transform:translateY(160%);transition:transform .3s cubic-bezier(.2,.9,.3,1.25);z-index:90;
+}
+body.ios .toast,body.touch-narrow .toast{inset-block-end:calc(5.2rem + env(safe-area-inset-bottom))}
+.toast.show{transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="announce" id="announce"></div>
+
+<header>
+  <div class="wrap bar">
+    <button class="mark" onclick="go('home')">ooch</button>
+    <nav class="navlinks" id="navlinks"></nav>
+    <button class="mkbtn" onclick="openMarket()" aria-label="Change country">
+      <span class="cc" id="mk-cc">AU</span><span id="mk-cur">AUD</span>
+    </button>
+    <button class="bagbtn" onclick="openBag()">Bag <span id="bag-n">0</span></button>
+  </div>
+</header>
+
+<main id="app"></main>
+
+<footer>
+  <div class="wrap">
+    <div class="cols" id="footcols"></div>
+    <p style="margin-top:var(--s-4)"><b>ooch</b> — Paris, France.</p>
+    <p id="foot-tax"></p>
+    <p id="foot-legal" style="font-size:var(--f-xs)"></p>
+    <p style="font-size:var(--f-xs)">Accounts are for 16 and over. Anyone can check out as a guest.</p>
+  </div>
+</footer>
+
+<nav class="tabbar" id="tabbar" aria-label="Main"></nav>
+
+<div class="scrim" id="scrim" onclick="closeAll()"></div>
+
+<aside class="drawer" id="bag" role="dialog" aria-modal="true" aria-label="Your bag">
+  <header><h2>Your bag</h2><button class="xbtn" onclick="closeAll()" aria-label="Close">×</button></header>
+  <div class="body" id="bagbody"></div>
+  <div class="foot" id="bagfoot"></div>
+</aside>
+
+<aside class="drawer" id="mkdraw" role="dialog" aria-modal="true" aria-label="Choose country">
+  <header><h2>Country</h2><button class="xbtn" onclick="closeAll()" aria-label="Close">×</button></header>
+  <div class="body" id="mkbody"></div>
+</aside>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="ooch-data.js"></script>
+<script>
+(function(){
+'use strict';
+var O = window.OOCH;
+var route = 'home', routeArg = null, bag = [], quiz = {};
+
+/* ---------- device layer ---------- */
+var isIOS = /iP(hone|ad|od)/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if (isIOS) document.body.classList.add('ios');
+function checkNarrow(){
+  var narrow = window.matchMedia('(max-width:52rem)').matches &&
+               window.matchMedia('(hover:none)').matches;
+  document.body.classList.toggle('touch-narrow', narrow && !isIOS);
+}
+checkNarrow();
+window.addEventListener('resize', checkNarrow, {passive:true});
+
+/* iOS 100vh bug: dvh where supported, JS fallback where not */
+function vhFix(){ document.documentElement.style.setProperty('--vh', window.innerHeight*0.01+'px'); }
+vhFix(); window.addEventListener('resize', vhFix, {passive:true});
+
+/* ---------- helpers ---------- */
+function el(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function art(p, col){
+  var fn = O.ART[p.art] || O.ART.tee;
+  var key = col || (p.cols && p.cols[0]);
+  var swatch = O.COLOURS[key];
+  if(!swatch) swatch = O.COLOURS[Object.keys(O.COLOURS)[0]];
+  return fn(swatch.hex, p.name);
+}
+var pick = {};  /* selected colour per product */
+
+/* ---------- toast ---------- */
+var tid;
+function toast(msg){
+  var t = el('toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(tid); tid = setTimeout(function(){ t.classList.remove('show'); }, 2400);
+}
+
+/* ---------- drawers ---------- */
+function closeAll(){
+  el('scrim').classList.remove('on');
+  el('bag').classList.remove('on');
+  el('mkdraw').classList.remove('on');
+  document.body.style.overflow = '';
+}
+function openBag(){ renderBag(); el('scrim').classList.add('on'); el('bag').classList.add('on'); document.body.style.overflow='hidden'; }
+function openMarket(){ renderMarketDrawer(); el('scrim').classList.add('on'); el('mkdraw').classList.add('on'); document.body.style.overflow='hidden'; }
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeAll(); });
+
+/* ---------- routing ---------- */
+function go(r, arg){
+  route = r; routeArg = arg || null; closeAll();
+  render(); window.scrollTo({top:0,behavior:'instant' in window ? 'instant':'auto'});
+}
+
+/* ================= SECTION RENDERERS ================= */
+var SEC = {};
+
+SEC.hero = function(s){
+  var d = s.data;
+  return '<div class="hero"><p class="kick">'+esc(d.kicker)+'</p>'+
+    '<h1 class="word">'+esc(d.word)+'</h1>'+
+    '<p class="line">'+esc(d.line)+'</p>'+
+    '<button class="cta" onclick="go(\'shop\')">Shop the drop</button></div>';
+};
+
+SEC.ticker = function(s){
+  var t = s.data.text;
+  /* repeat enough to overflow the widest screen, then double it so a
+     50% translate loops seamlessly with no gap */
+  var reps = Math.max(4, Math.ceil(2400 / Math.max(12, t.length * 7)));
+  var half = new Array(reps + 1).join(t);
+  return '<div class="ticker"><span>'+esc(half + half)+'</span></div>';
+};
+
+SEC.market = function(s){
+  var st = O.state, cur = O.market();
+  var flags = Object.keys(st.markets).map(function(c){
+    var m = st.markets[c];
+    return '<button type="button" aria-pressed="'+(c===cur.code)+'" '+
+      (m.live?'':'disabled title="Not selling here yet"')+
+      ' onclick="setMk(\''+c+'\')">'+esc(m.name)+' <span style="opacity:.6">'+m.cur+'</span></button>';
+  }).join('');
+  return '<section><div class="wrap"><div class="strip">'+
+    '<h3>'+esc(s.data.title)+'</h3><p class="sub">'+esc(s.data.sub)+'</p>'+
+    '<div class="flags">'+flags+'</div>'+
+    '<div class="facts">'+
+      fact('You pay', cur.incl ? cur.taxName+' included' : cur.taxName+' added at checkout')+
+      fact('At the door', cur.duty)+
+      fact('Sizes shown as', cur.sizeSys+' sizing')+
+      fact('Delivery', cur.ship)+
+    '</div></div></div></section>';
+};
+function fact(k,v){ return '<div class="fact"><small>'+esc(k)+'</small><b>'+esc(v)+'</b></div>'; }
+
+SEC.drop = function(s){
+  var items = O.liveProducts().filter(function(p){ return p.hero; }).slice(0,8);
+  if(!items.length) return '';
+  return '<section><div class="wrap"><div class="shead"><h2>'+esc(s.data.title)+'</h2>'+
+    '<p>'+esc(s.data.sub)+'</p></div><div class="grid">'+items.map(function(x){return cardHTML(x);}).join('')+'</div></div></section>';
+};
+
+SEC.signature = function(s){
+  var p = O.liveProducts().filter(function(x){ return x.signature; })[0];
+  if(!p) return '';
+  var col = pick[p.id] || p.cols[0];
+  return '<section><div class="wrap"><div class="sig">'+
+    '<div class="art">'+art(p,col)+'</div>'+
+    '<div><h2>'+esc(s.data.title)+'</h2><p>'+esc(s.data.sub)+'</p>'+
+    '<div class="sws">'+p.cols.map(function(c){
+      return '<button class="sw" style="background:'+O.COLOURS[c].hex+'" aria-pressed="'+(c===col)+
+        '" aria-label="'+esc(O.COLOURS[c].name)+'" onclick="setCol(\''+p.id+'\',\''+c+'\')"></button>';
+    }).join('')+'</div>'+
+    '<div class="tiles"><div><b>'+esc(O.fmt(O.priceOf(p)))+'</b>'+(O.market().incl?'incl. tax':'plus tax')+'</div>'+
+    '<div><b>'+p.cols.length+'</b>colourways</div><div><b>'+p.sizes.length+'</b>sizes</div></div>'+
+    '<button class="addbtn" style="margin-top:var(--s-4);max-width:16rem" onclick="go(\'product\',\''+p.id+'\')">See it</button>'+
+    '</div></div></div></section>';
+};
+
+SEC.shades = function(s){
+  var cols = Object.keys(O.COLOURS);
+  var active = pick.__shade || cols[0];
+  var sample = O.liveProducts()[0];
+  return '<section><div class="wrap"><div class="shead"><h2>'+esc(s.data.title)+'</h2><p>'+esc(s.data.sub)+'</p></div>'+
+    '<div class="shades">'+cols.map(function(c){
+      return '<button style="background:'+O.COLOURS[c].hex+'" aria-pressed="'+(c===active)+
+        '" aria-label="'+esc(O.COLOURS[c].name)+'" onclick="setShade(\''+c+'\')"><span>'+
+        esc(O.COLOURS[c].name.split(' ')[0])+'</span></button>';
+    }).join('')+'</div>'+
+    (sample?'<div class="grid" style="margin-top:var(--s-4)">'+
+      O.liveProducts().filter(function(p){ return p.cols.indexOf(active)>-1; }).slice(0,4)
+        .map(function(p){ return cardHTML(p, active); }).join('')+'</div>':'')+
+    '</div></section>';
+};
+
+SEC.cats = function(s){
+  var cats = O.state.categories.filter(function(c){ return c.visible; });
+  if(!cats.length) return '';
+  return '<section><div class="wrap"><div class="shead"><h2>'+esc(s.data.title)+'</h2></div>'+
+    '<div class="cats">'+cats.map(function(c){
+      var n = O.liveProducts().filter(function(p){ return p.cat===c.id; }).length;
+      return '<button class="cat" onclick="go(\'cat\',\''+c.id+'\')"><b>'+esc(c.name)+'</b>'+
+        '<span>'+esc(c.blurb)+'</span><em>'+n+' piece'+(n===1?'':'s')+' →</em></button>';
+    }).join('')+'</div></div></section>';
+};
+
+SEC.quiz = function(s){
+  var opts = [['vibe','Comfy','Dressed up'],['season','Beach','Everyday']];
+  var done = quiz.vibe && quiz.season;
+  var res = '';
+  if(done){
+    var wantSwim = quiz.season==='Beach';
+    var list = O.liveProducts().filter(function(p){
+      var isSwim = p.cat.indexOf('swim')===0;
+      return wantSwim ? isSwim : !isSwim;
+    }).slice(0,4);
+    res = '<p style="margin-top:var(--s-4);font-weight:800">We think this is for you.</p>'+
+      '<div class="grid" style="margin-top:var(--s-3)">'+list.map(function(p){return cardHTML(p);}).join('')+'</div>';
+  }
+  return '<section><div class="wrap"><div class="quiz"><h2>'+esc(s.data.title)+'</h2>'+
+    '<p style="color:var(--ink-soft)">'+esc(s.data.sub)+'</p>'+
+    opts.map(function(o){
+      return '<div class="qopts">'+o.slice(1).map(function(v){
+        return '<button aria-pressed="'+(quiz[o[0]]===v)+'" onclick="setQuiz(\''+o[0]+'\',\''+v+'\')">'+v+'</button>';
+      }).join('')+'</div>';
+    }).join('')+res+'</div></div></section>';
+};
+
+SEC.promise = function(s){
+  var m = O.market();
+  return '<section><div class="wrap"><div class="promise"><h2>'+esc(s.data.title)+'</h2>'+
+    '<p>'+esc(m.incl
+      ? 'Every price includes '+m.taxName+' and any import duty. Your parcel arrives with nothing left to pay.'
+      : 'Import duty is already in the price. '+m.taxName+' is added at checkout based on your state.')+'</p>'+
+    '<div class="pays">'+m.pay.map(function(x){ return '<span>'+esc(x)+'</span>'; }).join('')+'</div>'+
+    '</div></div></section>';
+};
+
+SEC.news = function(s){
+  return '<section><div class="wrap"><div class="news"><h2>'+esc(s.data.title)+'</h2>'+
+    '<p style="color:var(--ink-soft)">'+esc(s.data.sub)+'</p>'+
+    '<div class="newsform"><input type="email" inputmode="email" autocomplete="email" placeholder="your@email.com" aria-label="Email">'+
+    '<button onclick="toastMsg(\'Thanks — you are on the list\')">Join</button></div></div></div></section>';
+};
+
+/* ---------- product card ---------- */
+function cardHTML(p, forceCol){
+  var col = forceCol || pick[p.id] || p.cols[0];
+  var stock = O.stockOf(p.id);
+  var badge = p.signature ? '<span class="badge">Signature</span>'
+    : (stock < 40 ? '<span class="badge low">Almost gone</span>'
+    : (p.hero ? '<span class="badge">New</span>' : ''));
+  var m = O.market();
+  return '<article class="card">'+
+    '<button class="shot" style="border:0;width:100%" onclick="go(\'product\',\''+p.id+'\')" aria-label="View '+esc(p.name)+'">'+
+      badge + art(p,col) + '</button>'+
+    '<div class="info"><h3>'+esc(p.name)+'</h3>'+
+      '<div class="price">'+esc(O.fmt(O.priceOf(p)))+'</div>'+
+      '<div class="taxline">'+(m.incl?'incl. '+m.taxName+' &amp; duty':'duty included · tax at checkout')+'</div>'+
+      '<div class="sws">'+p.cols.map(function(c){
+        return '<button class="sw" style="background:'+O.COLOURS[c].hex+'" aria-pressed="'+(c===col)+
+          '" aria-label="'+esc(O.COLOURS[c].name)+'" onclick="setCol(\''+p.id+'\',\''+c+'\')"></button>';
+      }).join('')+'</div>'+
+      '<button class="addbtn" onclick="go(\'product\',\''+p.id+'\')">Choose size</button>'+
+    '</div></article>';
+}
+
+/* ================= PAGES ================= */
+function pageHome(){
+  return O.state.sections.filter(function(s){ return s.visible; })
+    .map(function(s){ return (SEC[s.type] ? SEC[s.type](s) : ''); }).join('');
+}
+
+function pageShop(){
+  var all = O.liveProducts();
+  return '<section><div class="wrap"><div class="shead"><h2>Everything</h2>'+
+    '<p>'+all.length+' pieces, in stock now.</p></div>'+
+    '<div class="grid">'+all.map(function(p){return cardHTML(p);}).join('')+'</div></div></section>';
+}
+
+function pageCat(id){
+  var c = O.category(id);
+  if(!c || !c.visible) return notFound('That category is no longer here.');
+  var items = O.liveProducts().filter(function(p){ return p.cat===id; });
+  return '<section><div class="wrap"><div class="shead"><h2>'+esc(c.name)+'</h2>'+
+    '<p>'+esc(c.blurb)+'</p></div>'+
+    (items.length?'<div class="grid">'+items.map(function(p){return cardHTML(p);}).join('')+'</div>'
+      :'<p style="color:var(--ink-soft)">Nothing in here right now.</p>')+
+    '</div></section>';
+}
+
+function pageProduct(id){
+  var p = O.product(id);
+  if(!p || !p.visible || p.status!=='published') return notFound('That piece has sold out or been retired.');
+  var col = pick[p.id] || p.cols[0];
+  var m = O.market();
+  var szKey = 'sz_'+p.id;
+  var chosen = pick[szKey] || null;
+  var st = O.state.stock[p.id] || {};
+  return '<section><div class="wrap"><div class="sig">'+
+    '<div class="art">'+art(p,col)+'</div><div>'+
+    '<h2 style="font-size:var(--f-xl)">'+esc(p.name)+'</h2>'+
+    '<div class="price" style="font-size:var(--f-lg);margin-top:var(--s-2)">'+esc(O.fmt(O.priceOf(p)))+'</div>'+
+    '<div class="taxline">'+(m.incl?'incl. '+m.taxName+' &amp; duty · '+m.ship:'plus tax · '+m.ship)+'</div>'+
+    '<p style="color:var(--ink-soft);margin-top:var(--s-3)">'+esc(p.desc)+'</p>'+
+    '<h4 style="margin-top:var(--s-4);font-size:var(--f-sm);font-family:Nunito;font-weight:800">Colour — '+esc(O.COLOURS[col].name)+'</h4>'+
+    '<div class="sws" style="margin-top:var(--s-2)">'+p.cols.map(function(c){
+      return '<button class="sw" style="background:'+O.COLOURS[c].hex+';inline-size:2em;block-size:2em" aria-pressed="'+(c===col)+
+        '" aria-label="'+esc(O.COLOURS[c].name)+'" onclick="setCol(\''+p.id+'\',\''+c+'\')"></button>';
+    }).join('')+'</div>'+
+    '<h4 style="margin-top:var(--s-4);font-size:var(--f-sm);font-family:Nunito;font-weight:800">Size</h4>'+
+    '<div class="qopts" style="justify-content:flex-start;margin-top:var(--s-2)">'+p.sizes.map(function(sz){
+      var left = st[col+'|'+sz]||0;
+      return '<button aria-pressed="'+(chosen===sz)+'" '+(left?'':'disabled style="opacity:.4"')+
+        ' onclick="setSize(\''+p.id+'\',\''+sz+'\')">'+esc(O.sizeLabel(sz))+'</button>';
+    }).join('')+'</div>'+
+    '<button class="addbtn" style="margin-top:var(--s-4);max-width:20rem" '+(chosen?'':'disabled')+
+      ' onclick="addToBag(\''+p.id+'\')">'+(chosen?'Add to bag':'Pick a size')+'</button>'+
+    '<div class="tiles" style="margin-top:var(--s-5)">'+
+      '<div><b>Fabric</b>'+esc(p.fibre)+'</div>'+
+      '<div><b>Made in</b>'+esc(p.origin)+'</div>'+
+      '<div><b>Care</b>'+esc(p.care)+'</div>'+
+    '</div>'+
+    '<p style="font-size:var(--f-xs);color:var(--ink-soft);margin-top:var(--s-3)">'+esc(m.duty)+'</p>'+
+    '</div></div></div></section>';
+}
+
+function notFound(msg){
+  return '<section><div class="wrap" style="text-align:center;padding-block:var(--s-7)">'+
+    '<h2 style="font-size:var(--f-xl)">Gone</h2>'+
+    '<p style="color:var(--ink-soft);margin-top:var(--s-3)">'+esc(msg)+'</p>'+
+    '<button class="cta" style="background:var(--ink);color:#fff;margin-top:var(--s-4)" onclick="go(\'shop\')">Shop everything</button>'+
+    '</div></section>';
+}
+
+/* ================= CHROME ================= */
+function renderChrome(){
+  var st = O.state, m = O.market();
+  el('mk-cc').textContent = m.code;
+  el('mk-cur').textContent = m.cur;
+  document.documentElement.lang = m.locale;
+
+  var promo = st.promos.filter(function(p){ return p.live && p.markets.indexOf(m.code)>-1 && p.text; })[0];
+  var a = el('announce');
+  if(promo){ a.textContent = promo.text; a.hidden = false; } else { a.hidden = true; }
+
+  var cats = st.categories.filter(function(c){ return c.visible; });
+  el('navlinks').innerHTML =
+    '<button onclick="go(\'shop\')" aria-current="'+(route==='shop')+'">Everything</button>'+
+    cats.slice(0,5).map(function(c){
+      return '<button onclick="go(\'cat\',\''+c.id+'\')" aria-current="'+(route==='cat'&&routeArg===c.id)+'">'+esc(c.name)+'</button>';
+    }).join('');
+
+  el('tabbar').innerHTML = [
+    ['home','⌂','Home'],['shop','▤','Shop'],['quiz','?','Quiz'],['bag','◲','Bag']
+  ].map(function(t){
+    var on = (t[0]==='bag') ? false : route===t[0];
+    return '<button aria-current="'+on+'" onclick="'+(t[0]==='bag'?'openBag()':'go(\''+t[0]+'\')')+'">'+
+      '<span class="ic" aria-hidden="true">'+t[1]+'</span>'+t[2]+'</button>';
+  }).join('');
+
+  el('bag-n').textContent = bag.reduce(function(s,i){ return s+i.qty; },0);
+  el('foot-tax').textContent = m.incl ? 'All prices include '+m.taxName+'.' : 'Prices exclude '+m.taxName+', added at checkout.';
+  el('foot-legal').textContent = m.legal;
+
+  var cs = st.categories.filter(function(c){return c.visible;});
+  el('footcols').innerHTML =
+    '<div><h4>Shop</h4><ul>'+cs.map(function(c){
+      return '<li><button style="background:none;border:0;padding:0;color:inherit;text-align:start" onclick="go(\'cat\',\''+c.id+'\')">'+esc(c.name)+'</button></li>';
+    }).join('')+'</ul></div>'+
+    '<div><h4>Help</h4><ul><li>Delivery &amp; duties</li><li>Returns</li><li>Size guide</li><li>Contact</li></ul></div>'+
+    '<div><h4>Legal</h4><ul><li>Privacy</li><li>Cookies</li><li>Terms of sale</li></ul></div>'+
+    '<div><h4>Country</h4><ul><li>'+esc(m.name)+' · '+m.cur+'</li><li>'+esc(m.ship)+'</li></ul></div>';
+}
+
+function renderBag(){
+  var m = O.market();
+  if(!bag.length){
+    el('bagbody').innerHTML = '<p style="color:var(--ink-soft);text-align:center;padding-block:var(--s-6)">Your bag is empty.</p>';
+    el('bagfoot').innerHTML = '<button class="checkout" onclick="closeAll();go(\'shop\')">Start shopping</button>';
+    return;
+  }
+  var total = 0;
+  el('bagbody').innerHTML = bag.map(function(it,i){
+    var p = O.product(it.pid);
+    if(!p) return '';
+    var line = O.priceOf(p) * it.qty; total += line;
+    return '<div class="bagrow"><div class="th">'+art(p,it.col)+'</div>'+
+      '<div style="flex:1"><b>'+esc(p.name)+'</b>'+
+      '<span>'+esc(O.COLOURS[it.col].name)+' · '+esc(it.sz)+' · ×'+it.qty+'</span></div>'+
+      '<div style="text-align:end"><b>'+esc(O.fmt(line))+'</b><br>'+
+      '<button style="background:none;border:0;color:var(--ink-soft);font-size:var(--f-xs);text-decoration:underline;padding:.3em 0" onclick="rmBag('+i+')">Remove</button></div></div>';
+  }).join('');
+  el('bagfoot').innerHTML =
+    '<div style="display:flex;justify-content:space-between;font-weight:800;margin-bottom:var(--s-3)">'+
+    '<span>Total</span><span>'+esc(O.fmt(total))+'</span></div>'+
+    '<p style="font-size:var(--f-xs);color:var(--ink-soft);margin:0 0 var(--s-3)">'+
+      esc(m.incl ? 'Includes '+m.taxName+' and duty. Nothing to pay on delivery.' : m.taxName+' added at checkout.')+'</p>'+
+    '<button class="checkout" onclick="toastMsg(\'Checkout is handled by Shopify in the live build\')">Checkout</button>';
+}
+
+function renderMarketDrawer(){
+  var st = O.state, cur = O.market();
+  el('mkbody').innerHTML = Object.keys(st.markets).map(function(c){
+    var m = st.markets[c];
+    return '<button style="display:flex;width:100%;gap:var(--s-3);align-items:center;background:none;border:0;'+
+      'border-bottom:1px solid var(--line);padding:var(--s-3) 0;text-align:start;'+(m.live?'':'opacity:.45;')+'" '+
+      (m.live?'':'disabled ')+'onclick="setMk(\''+c+'\');closeAll()">'+
+      '<span style="font-family:Baloo 2;font-weight:800;background:var(--wash);color:var(--blue-deep);'+
+      'border-radius:.4em;padding:.3em .5em;font-size:var(--f-xs)">'+c+'</span>'+
+      '<span style="flex:1"><b style="display:block">'+esc(m.name)+'</b>'+
+      '<span style="font-size:var(--f-xs);color:var(--ink-soft)">'+m.cur+' · '+esc(m.live?m.ship:'Not selling here yet')+'</span></span>'+
+      (c===cur.code?'<span style="color:var(--blue-deep);font-weight:800">✓</span>':'')+'</button>';
+  }).join('');
+}
+
+/* ================= RENDER ================= */
+function render(){
+  var html;
+  if(route==='home') html = pageHome();
+  else if(route==='shop') html = pageShop();
+  else if(route==='cat') html = pageCat(routeArg);
+  else if(route==='product') html = pageProduct(routeArg);
+  else if(route==='quiz') html = SEC.quiz(O.section('sec-quiz') || {data:{title:"What's your ooch?",sub:'Two questions.'}});
+  else html = pageHome();
+  el('app').innerHTML = html;
+  renderChrome();
+}
+
+/* ================= ACTIONS ================= */
+window.go = go;
+window.openBag = openBag;
+window.openMarket = openMarket;
+window.closeAll = closeAll;
+window.toastMsg = toast;
+window.setMk = function(c){ O.setMarket(c); toast('Now showing '+O.state.markets[c].name+' prices'); };
+window.setCol = function(pid,c){ pick[pid]=c; render(); };
+window.setShade = function(c){ pick.__shade=c; render(); };
+window.setSize = function(pid,sz){ pick['sz_'+pid]=sz; render(); };
+window.setQuiz = function(k,v){ quiz[k]=v; render(); };
+window.addToBag = function(pid){
+  var p = O.product(pid); if(!p) return;
+  var col = pick[pid]||p.cols[0], sz = pick['sz_'+pid];
+  if(!sz) return;
+  var found = bag.filter(function(i){ return i.pid===pid&&i.col===col&&i.sz===sz; })[0];
+  if(found) found.qty++; else bag.push({pid:pid,col:col,sz:sz,qty:1});
+  renderChrome(); toast(p.name+' · '+O.COLOURS[col].name+' · '+sz+' added');
+};
+window.rmBag = function(i){ bag.splice(i,1); renderBag(); renderChrome(); };
+
+/* live sync: admin deletes something, the site updates immediately */
+O.on(function(state, remote){
+  bag = bag.filter(function(i){ return !!O.product(i.pid); });
+  render();
+  if(remote) toast('Updated from the admin console');
+});
+
+render();
+})();
+</script>
+</body>
+</html>

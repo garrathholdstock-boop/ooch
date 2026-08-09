@@ -1,0 +1,39 @@
+# ooch — Caddy config
+# Automatic HTTPS. Apex redirects to www so there is one canonical address.
+
+ooch.com {
+	redir https://www.ooch.com{uri} permanent
+}
+
+www.ooch.com {
+	root * /srv/ooch
+	encode zstd gzip
+
+	# The admin console is not for the public.
+	# Replace the hash below with your own — see DEPLOY.md.
+	@admin path /admin* /admin.html
+	basic_auth @admin {
+		ooch $2a$14$REPLACE_THIS_WITH_YOUR_OWN_BCRYPT_HASH
+	}
+
+	# Never let the admin be indexed or cached.
+	@adminpage path /admin.html
+	header @adminpage {
+		X-Robots-Tag "noindex, nofollow"
+		Cache-Control "no-store"
+	}
+
+	header {
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	# Long cache for the data layer, busted by changing the filename.
+	@static path *.js *.css *.png *.svg *.webp *.woff2
+	header @static Cache-Control "public, max-age=604800"
+
+	file_server
+	try_files {path} {path}.html /index.html
+}
