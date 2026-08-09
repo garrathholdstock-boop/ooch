@@ -298,10 +298,17 @@ function pct(v,dp){return (v*100).toFixed(dp==null?1:dp)+'%';}
 function num(v){try{return new Intl.NumberFormat('en').format(Math.round(v));}catch(e){return Math.round(v);}}
 /* A real photograph wins over the vector drawing wherever a product is shown.
    Falls straight back to the drawing if p.img is absent or later removed. */
+/* Resolve exactly as the shop does: an uploaded photo for THIS colourway, then
+   the original photograph for it, then the vector drawing. Both pages going
+   through O.photoOf is what keeps the console showing what the shop shows —
+   and what keeps tapping a swatch changing the picture. */
 function art(p,col){
-  if(p && p.img) return '<img src="'+esc(p.img)+'" alt="'+esc(p.alt||p.name)+'" loading="lazy" '+
+  var key = col || (p.cols && p.cols[0]);
+  var photo = O.photoOf(p, key);
+  if(photo) return '<img src="'+esc(photo)+'" alt="'+esc(p.name)+'" loading="lazy" '+
     'style="inline-size:100%;block-size:100%;object-fit:cover;display:block">';
-  var fn=O.ART[p.art]||O.ART.tee;return fn(O.COLOURS[col||p.cols[0]].hex,p.name);}
+  var sw = O.COLOURS[key] || O.COLOURS[Object.keys(O.COLOURS)[0]];
+  var fn = O.ART[p.art]||O.ART.tee; return fn(sw.hex, p.name);}
 var tid; function toast(m){var t=el('toast');t.textContent=m;t.classList.add('show');
   clearTimeout(tid);tid=setTimeout(function(){t.classList.remove('show');},2400);}
 
@@ -415,6 +422,7 @@ function ranges(){
 }
 
 /* ---------- DASHBOARD ---------- */
+function DBreal(){ return O.state.products.filter(function(p){return p.real;}).length; }
 V.dash = function(){
   var a = O.analyse({days:range});
   var st = O.state;
@@ -638,7 +646,8 @@ V.products = function(){
         items.map(function(p){
           var stock = O.stockOf(p.id);
           return '<div class="row"><div class="thumb">'+art(p)+'</div>'+
-            '<div class="rmain"><b>'+esc(p.name)+'</b><span>'+p.cols.length+' colours · '+
+            '<div class="rmain"><b>'+esc(p.name)+(p.real?'':' <span class="pill p-warn">Placeholder art</span>')+
+              '</b><span>'+p.cols.length+' colours · '+
               num(stock)+' in stock · '+esc(O.fmt(O.priceOf(p,'AU'),'AU'))+' in Australia</span></div>'+
             (blocked(p)?'<span class="pill p-stop">Blocked</span>':
               '<span class="pill '+(p.visible?'p-live':'p-draft')+'">'+(p.visible?'Live':'Hidden')+'</span>')+
@@ -661,13 +670,30 @@ function productEditor(p){
       iss.map(function(i){return '<div class="issue '+(i[0]==='block'?'block':'warn')+'"><span>'+
         (i[0]==='block'?'!':'i')+'</span><span>'+esc(i[1])+'</span></div>';}).join('')+'</div></div>'
      : '<div class="panel"><div class="pad"><div class="issue ok"><span>✓</span><span>All details complete.</span></div></div></div>')+
+    /* ★ ONE UPLOAD PER COLOURWAY (2026-08-09). The photography is per-colour by
+       filename convention, and tapping a swatch to change the picture is the
+       thing the girls like most about the shop. A single product-level upload
+       would have shown the same photo for every colour and silently killed
+       that, so each colourway gets its own upload and its own Revert. */
     '<div class="panel"><h3>Photos</h3><div class="pad">'+
-      (p.img? '<div style="margin-block-end:.75em"><img src="'+esc(p.img)+'" alt="'+esc(p.alt||p.name)+'" '+
-              'style="max-inline-size:14rem;border-radius:.5rem;display:block"></div>'+
-              '<button class="btn ghost" onclick="removePhoto(\''+p.id+'\')">Remove photo</button>'
-            : '')+
-      '<div style="display:flex;gap:.5em;flex-wrap:wrap;margin-block:.75em">'+p.cols.map(function(c){
-        return '<div class="thumb" style="inline-size:4rem">'+art(p,c)+'</div>';}).join('')+'</div>'+
+      '<p class="hint" style="margin-top:0">One photo per colour — that is what makes tapping a '+
+        'swatch change the picture on the shop.</p>'+
+      p.cols.map(function(c){
+        var sw = O.COLOURS[c] || {name:c,hex:'#ccc'};
+        var up = (O.uploadedPhotos && O.uploadedPhotos()[p.id+'::'+c]) || null;
+        return '<div style="display:flex;gap:.7em;align-items:center;margin-block-end:.7em;flex-wrap:wrap">'+
+          '<div class="thumb" style="inline-size:4rem;flex:0 0 auto">'+art(p,c)+'</div>'+
+          '<div style="flex:1 1 12rem;min-inline-size:11rem">'+
+            '<b>'+esc(sw.name)+'</b>'+
+            '<div class="field" style="margin:.3em 0 0"><input type="file" '+
+              'accept="image/jpeg,image/png,image/gif,image/webp" '+
+              'onchange="uploadPhoto(\''+p.id+'\',\''+c+'\',this)"></div>'+
+            '<p class="hint" id="up-'+p.id+'-'+c+'" style="margin:.2em 0 0">'+
+              (up? 'Your uploaded photo.' : 'Original photo.')+'</p>'+
+          '</div>'+
+          (up? '<button class="btn ghost" onclick="removePhoto(\''+p.id+'\',\''+c+'\')">Revert</button>' : '')+
+        '</div>';
+      }).join('')+
       '</div></div>'+
     /* ★ COLOUR EDITOR (2026-08-09, operator request: "sometimes 1 colour,
        sometimes 5 — they need to pick the number and the colours").
@@ -703,11 +729,8 @@ function productEditor(p){
             'background:'+esc(s.hex)+';cursor:pointer"></button>';
         }).join('')+
       '</div>'+
-      '<div class="field"><label>Upload a photo</label>'+
-        '<input type="file" accept="image/jpeg,image/png,image/gif,image/webp" '+
-          'onchange="uploadPhoto(\''+p.id+'\',this)"></div>'+
-      '<p class="hint" id="up-'+p.id+'">'+(p.img? 'This photo replaces the drawing everywhere this product shows.'
-        : 'JPEG, PNG, GIF or WebP, up to 12 MB.')+'</p></div></div>'+
+      '<p class="hint">Uploading a photo for a colour is in the Photos panel above — one per colour.</p>'+
+      '</div></div>'+
     '<div class="panel"><h3>The basics</h3><div class="pad">'+
       '<div class="field"><label>Name</label><input type="text" value="'+esc(p.name)+
         '" oninput="editField(\''+p.id+'\',\'name\',this.value)"></div>'+
@@ -1116,21 +1139,21 @@ V.pages = function(){
 /* ---------- STYLE QUIZ ---------- */
 V.quiz = function(){
   var q = O.state.quiz;
-  return head('Style quiz','Two questions, four outcomes. Each outcome shows four products.')+
+  return head('Style quiz','Two questions, four outcomes. Every result opens with \u201c'+esc(O.state.quiz.resultLine)+'\u201d.')+
     '<div class="panel"><h3>Questions</h3>'+q.questions.map(function(qq,i){
       return '<div class="row"><span class="grab">⠿</span><div class="rmain"><b>'+esc(qq.text)+'</b>'+
-        '<span>'+esc(qq.answers.join(' · '))+'</span></div>'+
+        '<span>'+esc(qq.answers.map(function(a){return a.label||a;}).join(' · '))+'</span></div>'+
         '<button class="btn danger sm" onclick="delQuizQ(\''+qq.id+'\')">Delete</button></div>'+
         '<div class="row" style="padding-block-start:0"><div style="flex:1"><div class="two">'+
         '<div class="field"><label>Question</label><input type="text" value="'+esc(qq.text)+
           '" oninput="editQuizQ(\''+qq.id+'\',this.value)"></div>'+
         '<div class="field"><label>Answers, separated by a comma</label>'+
-          '<input type="text" value="'+esc(qq.answers.join(', '))+
+          '<input type="text" value="'+esc(qq.answers.map(function(a){return a.label||a;}).join(', '))+
           '" oninput="editQuizA(\''+qq.id+'\',this.value)"></div>'+
         '</div></div></div>';
     }).join('')+'</div>'+
     '<div class="panel"><h3>What we show them</h3>'+q.results.map(function(r){
-      var names = r.products.map(function(id){var p=O.product(id);return p?p.name:null;}).filter(Boolean);
+      var names = (r.picks||[]).map(function(pk){var p=O.product(pk[0]);return p?p.name:null;}).filter(Boolean);
       return '<div class="row"><div class="rmain"><b>'+esc(r.when)+'</b>'+
         '<span>'+(names.length?esc(names.join(' · ')):'Nothing picked yet')+'</span></div>'+
         '<span class="pill '+(names.length===4?'p-live':'p-warn')+'">'+names.length+' of 4</span></div>';
@@ -1261,14 +1284,14 @@ function shrinkImage(file){
   });
 }
 
-window.uploadPhoto = function(id, input){
+window.uploadPhoto = function(id, col, input){
   var f = input && input.files && input.files[0];
   if(!f) return;
   /* Look the hint up on EVERY call rather than capturing it once: O.commit()
      re-renders the whole panel, so a node captured up front is detached by the
      time the "done" message is written and the size report would never appear.
      Deliberately no local variable — a capture is the thing that goes stale. */
-  function say(m){ if(el('up-'+id)) el('up-'+id).textContent = m; }
+  function say(m){ var k='up-'+id+'-'+col; if(el(k)) el(k).textContent = m; }
   var wasMB = (f.size/1048576).toFixed(1);
   say('Preparing ' + f.name + ' (' + wasMB + ' MB)…');
 
@@ -1284,14 +1307,14 @@ window.uploadPhoto = function(id, input){
     var nowMB = (blob.size/1048576).toFixed(2);
     say(r.note ? ('Uploading — ' + r.note + '…')
                : ('Uploading ' + nowMB + ' MB, resized to ' + r.w + '×' + r.h + ' from ' + wasMB + ' MB…'));
-    return doUpload(id, blob, input, say, wasMB, nowMB, r);
+    return doUpload(id, col, blob, input, say, wasMB, nowMB, r);
   });
 };
 
 /* `shrink` is the resize result. It is NOT called `r` on purpose — the fetch
    response below is `r`, and shadowing the two made the size message read from
    the wrong object. */
-function doUpload(id, blob, input, say, wasMB, nowMB, shrink){
+function doUpload(id, col, blob, input, say, wasMB, nowMB, shrink){
   return fetch('/api/upload', { method:'POST', body:blob })
     .then(function(r){ return r.json().then(function(j){ return { ok:r.ok, j:j }; }); })
     .then(function(res){
@@ -1299,16 +1322,14 @@ function doUpload(id, blob, input, say, wasMB, nowMB, shrink){
         say((res.j && (res.j.detail || res.j.error)) || 'Upload failed.');
         input.value=''; return;
       }
-      var p = O.product(id);
-      if(!p){ say('That product has gone.'); return; }
-      p.img = res.j.url;
+      if(!O.product(id)){ say('That product has gone.'); return; }
       O.commit();                 /* saves, then re-renders so the photo appears */
       /* Publish to the server map so the shop and every other device see it —
          without this the photo exists only in THIS browser's storage, which is
          exactly the bug this whole mechanism was added to fix. */
       return fetch('/api/photos', {
         method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ id:id, url:res.j.url })
+        body: JSON.stringify({ id:id+'::'+col, url:res.j.url })
       }).then(function(r){
         toast(r.ok ? 'Photo added — live on the shop' : 'Photo saved here, but the shop did not get it');
         say(shrink && shrink.w
@@ -1347,14 +1368,13 @@ window.removeColour = function(pid, key){
 window.setColourHex = function(pid, key, hex){ O.setColour(key, null, hex); O.commit(); };
 window.setColourName = function(pid, key, name){ O.setColour(key, name, null); O.commit(); };
 
-window.removePhoto = function(id){
-  var p = O.product(id); if(!p) return;
-  delete p.img;                   /* falls back to the drawing everywhere */
-  O.commit();
+window.removePhoto = function(id, col){
+  if(!O.product(id)) return;
+  O.commit();                     /* falls back to the original photo */
   /* Clear it on the server too, or the next load pulls the photo straight back. */
   fetch('/api/photos', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ id:id, url:null })
+    body: JSON.stringify({ id:id+'::'+col, url:null })
   }).then(function(){ toast('Photo removed'); })
     .catch(function(){ toast('Removed here, but the shop may still show it'); });
 };
@@ -1526,31 +1546,16 @@ setInterval(syncPhotos, 20000);
 setInterval(checkBuild, 20000);
 checkBuild();
 
+/* ★2026-08-09 photos are now per-COLOURWAY and resolved by O.photoOf, so this
+   no longer writes p.img onto products. ooch-sync.js pulls the map and hands it
+   to the data layer; this just keeps the console in step. */
 function syncPhotos(){
   fetch('/api/photos', { cache:'no-store' })
     .then(function(r){ return r.ok ? r.json() : null; })
     .then(function(map){
-      if(!map) return;
-      var changed = false, orphans = [];
-      O.state.products.forEach(function(p){
-        var url = map[p.id] || null;
-        if(url){ if(p.img !== url){ p.img = url; changed = true; } }
-        else if(p.img){
-          /* ★ SELF-HEAL. This browser has a photo the server does not know
-             about — which is what a photo uploaded by an out-of-date page
-             looks like: the file reached the server, but nothing ever said
-             which product it belonged to. Publish it instead of deleting it,
-             so an upload can never be silently lost again. */
-          if(/^\/uploads\/[a-f0-9]{16}\.(jpg|png|gif|webp)$/.test(p.img)) orphans.push({ id:p.id, url:p.img });
-          else { delete p.img; changed = true; }
-        }
-      });
-      if(changed) O.commit();
-      orphans.forEach(function(o){
-        fetch('/api/photos', { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify(o) }).catch(function(){});
-      });
-      if(orphans.length) toast(orphans.length + ' photo' + (orphans.length>1?'s':'') + ' published to the shop');
+      if(!map || !O.setUploadedPhotos) return;
+      O.setUploadedPhotos(map);
+      O.commit();
     })
     .catch(function(){});
 }

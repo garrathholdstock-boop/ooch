@@ -38,7 +38,7 @@
      already trusts: write localStorage, then let it re-read. */
   function adopt(state, ts) {
     try {
-      global.localStorage.setItem('ooch.store.v4', JSON.stringify(state));
+      global.localStorage.setItem('ooch.store.v5', JSON.stringify(state));   /* keep in step with KEY in ooch-data.js */
       setLocalTs(ts);
       if (O.reload) O.reload();
       else global.location.reload();      /* older build without reload(): brute force */
@@ -103,6 +103,23 @@
     clearTimeout(pushTimer);
     pushTimer = setTimeout(function () { push(false); }, PUSH_DEBOUNCE_MS);
   });
+
+  /* The uploaded-photo map is server-owned and per (product, colourway). It is
+     pushed into the data layer rather than into `state`, so adopting another
+     device's catalogue can never drop or resurrect a photo. */
+  function pullPhotos() {
+    fetch('/api/photos', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (m) {
+        if (!m || !O.setUploadedPhotos) return;
+        O.setUploadedPhotos(m);
+        if (O.commit) O.commit();          /* re-render with the new photos */
+      })
+      .catch(function () {});
+  }
+  pullPhotos();
+  setInterval(pullPhotos, PULL_MS);
+  global.OOCH_SYNC_PHOTOS = pullPhotos;
 
   pull();
   setInterval(pull, PULL_MS);

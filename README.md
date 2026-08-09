@@ -1,60 +1,52 @@
 # ooch
 
-Storefront and admin console for ooch.com. Static files — no build step, no database, no Node on the server.
+Storefront and admin console for ooch. Static files — no build step, no database, no Node on the server.
 
 ## Files
 
-| File | What it is |
+| | |
 |---|---|
 | `index.html` | The shop |
 | `admin.html` | The admin console |
 | `ooch-data.js` | Shared data layer both files read from |
-| `Caddyfile` | Web server config — HTTPS, www redirect, admin password |
-| `docker-compose.yml` | One-command start |
+| `assets/` | 57 product photographs (WebP) |
+| `Caddyfile` / `docker-compose.yml` | Unused on the current server, which runs nginx |
 | `robots.txt` | Keeps the admin out of search results |
-| `DEPLOY.md` | Full deployment instructions |
+| `DEPLOY.md` | Deployment notes |
 
-## Quick start
-
-```bash
-git clone git@github.com:YOURNAME/ooch.git /srv/ooch
-cd /srv/ooch
-docker compose up -d
-```
-
-Full instructions, including DNS and the admin password, are in `DEPLOY.md`.
-
-## Before the first deploy
-
-Set the admin password:
+## Updating the live site
 
 ```bash
-docker run --rm caddy:2-alpine caddy hash-password --plaintext 'your-password-here'
+cd /srv/ooch/app && git pull
 ```
 
-Paste the hash into `Caddyfile`, replacing `$2a$14$REPLACE_THIS...`, then stop git from overwriting it on future pulls:
+Nothing to rebuild or restart — they are static files.
 
-```bash
-git update-index --skip-worktree Caddyfile
-```
+## The range
 
-## Updating later
+**Photographed (10):** Cloud hoodie, Everyday tee, Wide leg track pant, Mini skort, Mini tote, Ooch bikini, and headbands in twist, bow, skinny and wide. Five blues each, except the bikini in sky blue and white.
 
-```bash
-cd /srv/ooch && git pull && docker compose restart
-```
+**Placeholder art (14):** vector stand-ins so the shop looks full and the analytics have depth. The admin labels every one of them "Placeholder art". Delete them once the real range is settled.
+
+## The style quiz
+
+Two questions, four outcomes. Every result opens with "We think this is for you".
+
+| Answer | Result |
+|---|---|
+| Comfort · Winter | Cosy season |
+| Comfort · Summer | Easy and loose |
+| Style · Summer | Summer statement |
+| Style · Winter | Sharp and layered |
+
+Questions and outcomes are editable in the admin under Content → Style quiz.
 
 ## What this is
 
-A working prototype. Everything is interactive and the admin genuinely drives the shop — hide a product and it disappears within a second. But:
-
-- Data lives in each browser's local storage, so changes are per-device
-- There is no checkout; that is Shopify in the live build
-- Sales figures are generated so the analytics have something to show
-- Garments are drawn as vectors, standing in for photography
+A working prototype. The admin genuinely drives the shop — hide a product and it disappears within a second. But data lives in each browser, there is no checkout, and the sales figures are generated so the analytics have something to show.
 
 Reset before showing anyone: **Settings → Reset everything**.
 
-## Adding to a phone
+## On a phone
 
-Open the site in Safari, tap Share, then **Add to Home Screen**. It opens full screen with its own icon. The admin does the same.
+Safari → Share → **Add to Home Screen**. Opens full screen with its own icon. The admin does the same.

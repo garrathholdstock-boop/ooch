@@ -12,7 +12,14 @@
 (function (global) {
 'use strict';
 
-var KEY = 'ooch.store.v4';
+/* ★2026-08-09 BUMPED v4 -> v5 for the design merge. The catalogue changed shape:
+   colour keys are now 'sky-blue' not 'sky', and products carry a `photo` prefix
+   for the per-colourway photography. A cached v4 catalogue would be accepted by
+   load() and would suppress the new one — the photos simply would not appear,
+   with nothing to indicate why. Bumping forces every device to re-seed from the
+   new catalogue. It DOES discard catalogue edits made in a browser before this
+   deploy; those were edits to the catalogue being replaced. */
+var KEY = 'ooch.store.v5';
 var CHANNEL = 'ooch.sync';
 
 /* ---------- seeded random so the demo data never jumps around ---- */
@@ -26,13 +33,13 @@ function rng(seed) {
 
 /* ================= COLOURWAYS ================= */
 var COLOURS = {
-  baby:  { name: 'Baby blue',  hex: '#BFDFF5' },
-  sky:   { name: 'Sky blue',   hex: '#8FC5E8' },
-  corn:  { name: 'Cornflower', hex: '#6E93D6' },
-  denim: { name: 'Denim blue', hex: '#43679E' },
-  navy:  { name: 'Navy blue',  hex: '#22335A' },
-  white: { name: 'Optic white',hex: '#F7FAFC' },
-  sand:  { name: 'Sand',       hex: '#E4D6C1' }
+  'baby-blue':  { name: 'Baby blue',  note: 'soft & sweet',        hex: '#D4DDED' },
+  'sky-blue':   { name: 'Sky blue',   note: 'bright & fresh',      hex: '#B3CCEB' },
+  'cornflower': { name: 'Cornflower', note: 'cool & calm',         hex: '#8DA0C2' },
+  'denim-blue': { name: 'Denim blue', note: 'classic & timeless',  hex: '#5875A4' },
+  'navy-blue':  { name: 'Navy blue',  note: 'deep & effortless',   hex: '#293046' },
+  'white':      { name: 'White',      note: 'clean & classic',     hex: '#F2F2EF' },
+  'sand':       { name: 'Sand',       note: 'warm & neutral',      hex: '#E4D6C1' }
 };
 
 /* ================= GARMENT ART =================
@@ -80,67 +87,121 @@ function sh(hex) { /* darker shade for seams and detail */
 
 /* ================= CATEGORIES ================= */
 var CATEGORIES = [
-  { id: 'swim-w',  name: 'Swim — Women',   blurb: 'Built for long days and salt water.' },
-  { id: 'swim-m',  name: 'Swim — Men',     blurb: 'Quick dry, no fuss, holds its shape.' },
-  { id: 'hoodies', name: 'Hoodies & sweats', blurb: 'The signature. Oversized on purpose.' },
-  { id: 'tops',    name: 'Tees & tops',    blurb: 'Everyday weight, everyday blues.' },
-  { id: 'bottoms', name: 'Bottoms',        blurb: 'Wide, soft, and cut to move.' },
-  { id: 'hats',    name: 'Hats',           blurb: 'Sun on, sun off.' },
-  { id: 'access',  name: 'Accessories',    blurb: 'The little things that finish it.' }
+  { id:'tops',    name:'Tees & tops',      blurb:'Everyday weight, everyday blues.' },
+  { id:'hoodies', name:'Hoodies & sweats', blurb:'The signature. Oversized on purpose.' },
+  { id:'bottoms', name:'Bottoms',          blurb:'Wide, soft, and cut to move.' },
+  { id:'swim',    name:'Swim',             blurb:'For long days and salt water.' },
+  { id:'access',  name:'Accessories',      blurb:'The little things that finish it.' },
+  { id:'hats',    name:'Hats',             blurb:'Sun on, sun off.' }
 ];
 
 /* ================= PRODUCTS =================
    cost = landed unit cost in EUR (factory + freight + duty)
    eur  = base retail excluding tax                          */
 var CATALOGUE = [
-  /* --- Swim, women --- */
-  { id:'sw01', cat:'swim-w', art:'bikinitop',    name:'Reef bikini top',        eur:38, cost:9.5,  cols:['baby','sky','corn','navy','sand'], sizes:['XS','S','M','L','XL'], hs:'611241', fibre:'80% Polyamide, 20% Elastane', origin:'China', hero:true },
-  { id:'sw02', cat:'swim-w', art:'bikinibottom', name:'Reef bikini bottom',     eur:34, cost:8.0,  cols:['baby','sky','corn','navy','sand'], sizes:['XS','S','M','L','XL'], hs:'611241', fibre:'80% Polyamide, 20% Elastane', origin:'China' },
-  { id:'sw03', cat:'swim-w', art:'onepiece',     name:'Tide one-piece',         eur:72, cost:17.0, cols:['navy','denim','baby','white'],     sizes:['XS','S','M','L','XL'], hs:'611241', fibre:'82% Polyamide, 18% Elastane', origin:'China', hero:true },
-  { id:'sw04', cat:'swim-w', art:'bikinitop',    name:'Sunrise triangle top',   eur:36, cost:8.5,  cols:['sky','corn','sand','white'],       sizes:['XS','S','M','L'],      hs:'611241', fibre:'80% Polyamide, 20% Elastane', origin:'China' },
-  { id:'sw05', cat:'swim-w', art:'rashie',       name:'Long sleeve rash top',   eur:56, cost:13.0, cols:['navy','denim','baby'],             sizes:['XS','S','M','L','XL'], hs:'611241', fibre:'85% Polyester, 15% Elastane', origin:'China' },
-  { id:'sw06', cat:'swim-w', art:'boardshort',   name:'Womens board short',     eur:48, cost:11.0, cols:['navy','sky','sand'],               sizes:['XS','S','M','L','XL'], hs:'620343', fibre:'100% Polyester',              origin:'China' },
+  /* ================================================================
+     THE REAL RANGE — shot, cut and colour-matched.
+     `photo` is a filename prefix in assets/; the colourway key is
+     appended to it, e.g. hoodie- + sky-blue -> assets/hoodie-sky-blue.webp
+  ================================================================= */
+  { id:'hoodie', cat:'hoodies', name:'Cloud hoodie', eur:68, cost:15.0, photo:'hoodie-', art:'hoodie',
+    cols:['baby-blue','sky-blue','cornflower','denim-blue','navy-blue'],
+    sizes:['XS','S','M','L','XL','XXL'], hs:'611020', fibre:'80% Cotton, 20% Polyester',
+    origin:'China', hero:true, signature:true, real:true,
+    views:[['sig-front','Front'],['sig-back','Back'],['sig-hood','Hood'],['sig-fabric','Fabric'],['sig-logo','Logo']],
+    models:[['sig-model-1','Worn, front'],['sig-model-2','Worn, back'],['sig-model-3','Worn with the pant']] },
 
-  /* --- Swim, men --- */
-  { id:'sm01', cat:'swim-m', art:'swimshort',   name:'Coast swim short',       eur:52, cost:12.0, cols:['navy','denim','sky','sand'],       sizes:['S','M','L','XL','XXL'], hs:'620411', fibre:'100% Polyester',           origin:'China', hero:true },
-  { id:'sm02', cat:'swim-m', art:'boardshort',  name:'Lagoon board short',     eur:64, cost:15.0, cols:['navy','corn','white'],             sizes:['S','M','L','XL','XXL'], hs:'620343', fibre:'92% Polyester, 8% Elastane', origin:'China' },
-  { id:'sm03', cat:'swim-m', art:'swimshort',   name:'Shorebreak short',       eur:46, cost:10.5, cols:['baby','sky','navy'],               sizes:['S','M','L','XL'],       hs:'620411', fibre:'100% Polyester',           origin:'China' },
-  { id:'sm04', cat:'swim-m', art:'rashie',      name:'Mens rash guard',        eur:58, cost:13.5, cols:['navy','denim','white'],            sizes:['S','M','L','XL','XXL'], hs:'611241', fibre:'85% Polyester, 15% Elastane', origin:'China' },
+  { id:'tee', cat:'tops', name:'Everyday tee', eur:32, cost:6.5, photo:'tee-', art:'tee',
+    cols:['baby-blue','sky-blue','cornflower','denim-blue','navy-blue'],
+    sizes:['XS','S','M','L','XL','XXL'], hs:'610910', fibre:'100% Cotton',
+    origin:'China', hero:true, real:true },
 
-  /* --- Hoodies --- */
-  { id:'hd01', cat:'hoodies', art:'hoodie', name:'Cloud hoodie',          eur:68, cost:15.0, cols:['baby','sky','corn','denim','navy'], sizes:['XS','S','M','L','XL','XXL'], hs:'611020', fibre:'80% Cotton, 20% Polyester', origin:'China', hero:true, signature:true },
-  { id:'hd02', cat:'hoodies', art:'zip',    name:'Cloud zip-through',     eur:76, cost:17.5, cols:['baby','navy','denim'],              sizes:['XS','S','M','L','XL','XXL'], hs:'611020', fibre:'80% Cotton, 20% Polyester', origin:'China' },
-  { id:'hd03', cat:'hoodies', art:'crew',   name:'Everyday crew',         eur:58, cost:13.0, cols:['baby','sky','navy','white'],        sizes:['XS','S','M','L','XL'],       hs:'611030', fibre:'80% Cotton, 20% Polyester', origin:'China' },
-  { id:'hd04', cat:'hoodies', art:'hoodie', name:'Heavyweight hoodie',    eur:88, cost:21.0, cols:['navy','denim'],                     sizes:['S','M','L','XL','XXL'],      hs:'611020', fibre:'100% Cotton',              origin:'China' },
+  { id:'pant', cat:'bottoms', name:'Wide leg track pant', eur:58, cost:13.0, photo:'pant-', art:'pants',
+    cols:['baby-blue','sky-blue','cornflower','denim-blue','navy-blue'],
+    sizes:['XS','S','M','L','XL'], hs:'610462', fibre:'65% Cotton, 35% Polyester',
+    origin:'China', hero:true, real:true },
 
-  /* --- Tops --- */
-  { id:'tp01', cat:'tops', art:'tee',        name:'Everyday tee',        eur:32, cost:6.5,  cols:['baby','sky','corn','denim','navy','white'], sizes:['XS','S','M','L','XL','XXL'], hs:'610910', fibre:'100% Cotton', origin:'China', hero:true },
-  { id:'tp02', cat:'tops', art:'longsleeve', name:'Long sleeve tee',     eur:42, cost:9.0,  cols:['baby','navy','white'],                     sizes:['XS','S','M','L','XL'],       hs:'610910', fibre:'100% Cotton', origin:'China' },
-  { id:'tp03', cat:'tops', art:'crop',       name:'Cropped tee',         eur:30, cost:6.0,  cols:['baby','sky','white'],                      sizes:['XS','S','M','L'],            hs:'610910', fibre:'100% Cotton', origin:'China' },
-  { id:'tp04', cat:'tops', art:'tank',       name:'Summer tank',         eur:26, cost:5.5,  cols:['baby','sky','sand','white'],               sizes:['XS','S','M','L','XL'],       hs:'610990', fibre:'100% Cotton', origin:'China' },
+  { id:'skort', cat:'bottoms', name:'Mini skort', eur:45, cost:10.0, photo:'skort-', art:'shorts',
+    cols:['baby-blue','sky-blue','cornflower','denim-blue','navy-blue'],
+    sizes:['XS','S','M','L','XL'], hs:'610453', fibre:'65% Cotton, 35% Polyester',
+    origin:'China', hero:true, real:true, desc:'Mini skort with a satin bow at the waist.' },
 
-  /* --- Bottoms --- */
-  { id:'bt01', cat:'bottoms', art:'pants',  name:'Wide leg track pants', eur:58, cost:13.0, cols:['sky','denim','navy'],        sizes:['XS','S','M','L','XL'], hs:'610462', fibre:'65% Cotton, 35% Polyester', origin:'China', hero:true },
-  { id:'bt02', cat:'bottoms', art:'shorts', name:'Sweat short',          eur:38, cost:8.0,  cols:['baby','navy','denim'],       sizes:['XS','S','M','L','XL'], hs:'610462', fibre:'65% Cotton, 35% Polyester', origin:'China' },
+  { id:'tote', cat:'access', name:'Mini tote', eur:22, cost:4.0, photo:'tote-', art:'tote',
+    cols:['baby-blue','sky-blue','cornflower','denim-blue','navy-blue'],
+    sizes:['One size'], hs:'420222', fibre:'100% Cotton canvas',
+    origin:'China', hero:true, real:true },
 
-  /* --- Hats --- */
-  { id:'ht01', cat:'hats', art:'bucket', name:'Bucket hat',        eur:32, cost:5.5, cols:['baby','sky','navy','sand'], sizes:['S/M','L/XL'], hs:'650500', fibre:'100% Cotton',  origin:'China', hero:true },
-  { id:'ht02', cat:'hats', art:'cap',    name:'Six panel cap',     eur:30, cost:5.0, cols:['baby','navy','white'],      sizes:['One size'],   hs:'650500', fibre:'100% Cotton',  origin:'China' },
-  { id:'ht03', cat:'hats', art:'beanie', name:'Ribbed beanie',     eur:28, cost:4.5, cols:['navy','denim','baby'],      sizes:['One size'],   hs:'650500', fibre:'100% Acrylic', origin:'China' },
-  { id:'ht04', cat:'hats', art:'straw',  name:'Wide brim straw',   eur:44, cost:8.0, cols:['sand'],                     sizes:['One size'],   hs:'650400', fibre:'100% Paper straw', origin:'China' },
+  { id:'bikini', cat:'swim', name:'Ooch bikini', eur:48, cost:11.0, photo:'bikini-front-', art:'bikinitop',
+    cols:['sky-blue','white'], sizes:['XS','S','M','L','XL'], hs:'611241',
+    fibre:'80% Polyamide, 20% Elastane', origin:'China', hero:true, real:true,
+    views:[['bikini-front-sky-blue','Front'],['bikini-back-sky-blue','Back']] },
 
-  /* --- Accessories --- */
-  { id:'ac01', cat:'access', art:'headband',  name:'Bow headband',     eur:14, cost:1.8, cols:['baby','sky','corn','denim'], sizes:['One size'], hs:'650500', fibre:'95% Cotton, 5% Elastane', origin:'China' },
-  { id:'ac02', cat:'access', art:'twist',     name:'Twist headband',   eur:12, cost:1.5, cols:['baby','navy','sand'],        sizes:['One size'], hs:'650500', fibre:'95% Cotton, 5% Elastane', origin:'China' },
-  { id:'ac03', cat:'access', art:'scrunchie', name:'Scrunchie三 set',  eur:12, cost:1.2, cols:['baby','sky','navy'],         sizes:['One size'], hs:'621790', fibre:'100% Cotton',            origin:'China' },
-  { id:'ac04', cat:'access', art:'tote',      name:'Canvas tote',      eur:26, cost:4.0, cols:['baby','white','sand'],       sizes:['One size'], hs:'420222', fibre:'100% Cotton canvas',     origin:'China' },
-  { id:'ac05', cat:'access', art:'towel',     name:'Beach towel',      eur:38, cost:7.0, cols:['baby','sky','navy'],         sizes:['One size'], hs:'630260', fibre:'100% Cotton',            origin:'China', hero:true },
-  { id:'ac06', cat:'access', art:'socks',     name:'Crew socks',       eur:14, cost:1.6, cols:['baby','navy','white'],       sizes:['S/M','L/XL'], hs:'611595', fibre:'80% Cotton, 20% Nylon', origin:'China' },
-  { id:'ac07', cat:'access', art:'bottle',    name:'Steel bottle',     eur:34, cost:6.5, cols:['baby','navy','white'],       sizes:['One size'], hs:'961700', fibre:'Stainless steel',        origin:'China' },
-  { id:'ac08', cat:'access', art:'sunnies',   name:'Beach sunglasses', eur:36, cost:6.0, cols:['navy','sand','white'],       sizes:['One size'], hs:'900410', fibre:'Acetate frame',          origin:'China' }
+  { id:'band-twist', cat:'access', name:'Twist headband', eur:12, cost:1.5, photo:'band-twist-', art:'twist',
+    cols:['baby-blue','sky-blue','cornflower','denim-blue','navy-blue'],
+    sizes:['One size'], hs:'650500', fibre:'95% Cotton, 5% Elastane', origin:'China', real:true },
+
+  { id:'band-bow', cat:'access', name:'Bow headband', eur:12, cost:1.8, photo:'band-bow-', art:'headband',
+    cols:['baby-blue','sky-blue','cornflower','denim-blue','navy-blue'],
+    sizes:['One size'], hs:'650500', fibre:'95% Cotton, 5% Elastane', origin:'China', hero:true, real:true },
+
+  { id:'band-skinny', cat:'access', name:'Skinny headband', eur:9, cost:1.2, photo:'band-skinny-', art:'headband',
+    cols:['baby-blue','sky-blue','cornflower','denim-blue','navy-blue'],
+    sizes:['One size'], hs:'650500', fibre:'95% Cotton, 5% Elastane', origin:'China', real:true },
+
+  { id:'band-wide', cat:'access', name:'Wide headband', eur:12, cost:1.6, photo:'band-wide-', art:'headband',
+    cols:['baby-blue','sky-blue','cornflower','denim-blue','navy-blue'],
+    sizes:['One size'], hs:'650500', fibre:'95% Cotton, 5% Elastane', origin:'China', real:true },
+
+  /* ================================================================
+     NOT YET SHOT — vector placeholders so the shop looks full and the
+     analytics have something to drill into. Marked `real:false`, and
+     the admin labels them "Placeholder art" so nobody confuses them
+     for finished products. Delete the lot when the range is settled.
+  ================================================================= */
+  { id:'crew', cat:'hoodies', name:'Everyday crew', eur:58, cost:13.0, art:'crew',
+    cols:['baby-blue','sky-blue','navy-blue','white'], sizes:['XS','S','M','L','XL'],
+    hs:'611030', fibre:'80% Cotton, 20% Polyester', origin:'China' },
+  { id:'zip', cat:'hoodies', name:'Cloud zip-through', eur:76, cost:17.5, art:'zip',
+    cols:['baby-blue','navy-blue','denim-blue'], sizes:['XS','S','M','L','XL','XXL'],
+    hs:'611020', fibre:'80% Cotton, 20% Polyester', origin:'China' },
+  { id:'longsleeve', cat:'tops', name:'Long sleeve top', eur:42, cost:9.0, art:'longsleeve',
+    cols:['baby-blue','navy-blue','white'], sizes:['XS','S','M','L','XL'],
+    hs:'610910', fibre:'100% Cotton', origin:'China' },
+  { id:'crop', cat:'tops', name:'Crop top', eur:34, cost:6.0, art:'crop',
+    cols:['baby-blue','sky-blue','white'], sizes:['XS','S','M','L'],
+    hs:'610910', fibre:'100% Cotton', origin:'China' },
+  { id:'flowy', cat:'tops', name:'Flowy top', eur:44, cost:9.5, art:'tank',
+    cols:['baby-blue','sky-blue','sand','white'], sizes:['XS','S','M','L','XL'],
+    hs:'610990', fibre:'100% Viscose', origin:'China' },
+  { id:'short', cat:'bottoms', name:'Relaxed short', eur:40, cost:8.0, art:'shorts',
+    cols:['baby-blue','navy-blue','denim-blue'], sizes:['XS','S','M','L','XL'],
+    hs:'610462', fibre:'65% Cotton, 35% Polyester', origin:'China' },
+  { id:'dresspant', cat:'bottoms', name:'Dress pant', eur:74, cost:16.0, art:'pants',
+    cols:['navy-blue','denim-blue'], sizes:['XS','S','M','L','XL'],
+    hs:'610463', fibre:'70% Polyester, 30% Viscose', origin:'China' },
+  { id:'swimshort', cat:'swim', name:'Coast swim short', eur:52, cost:12.0, art:'swimshort',
+    cols:['navy-blue','denim-blue','sky-blue','sand'], sizes:['S','M','L','XL','XXL'],
+    hs:'620411', fibre:'100% Polyester', origin:'China' },
+  { id:'rashie', cat:'swim', name:'Long sleeve rash top', eur:56, cost:13.0, art:'rashie',
+    cols:['navy-blue','denim-blue','baby-blue'], sizes:['XS','S','M','L','XL'],
+    hs:'611241', fibre:'85% Polyester, 15% Elastane', origin:'China' },
+  { id:'bucket', cat:'hats', name:'Bucket hat', eur:32, cost:5.5, art:'bucket',
+    cols:['baby-blue','sky-blue','navy-blue','sand'], sizes:['S/M','L/XL'],
+    hs:'650500', fibre:'100% Cotton', origin:'China' },
+  { id:'cap', cat:'hats', name:'Six panel cap', eur:30, cost:5.0, art:'cap',
+    cols:['baby-blue','navy-blue','white'], sizes:['One size'],
+    hs:'650500', fibre:'100% Cotton', origin:'China' },
+  { id:'beanie', cat:'hats', name:'Ribbed beanie', eur:28, cost:4.5, art:'beanie',
+    cols:['navy-blue','denim-blue','baby-blue'], sizes:['One size'],
+    hs:'650500', fibre:'100% Acrylic', origin:'China' },
+  { id:'towel', cat:'access', name:'Beach towel', eur:38, cost:7.0, art:'towel',
+    cols:['baby-blue','sky-blue','navy-blue'], sizes:['One size'],
+    hs:'630260', fibre:'100% Cotton', origin:'China' },
+  { id:'socks', cat:'access', name:'Crew socks', eur:14, cost:1.6, art:'socks',
+    cols:['baby-blue','navy-blue','white'], sizes:['S/M','L/XL'],
+    hs:'611595', fibre:'80% Cotton, 20% Nylon', origin:'China' }
 ];
-/* fix a stray character in one name */
-CATALOGUE.forEach(function (p) { p.name = p.name.replace('三 ', ' '); });
+
 
 /* ================= MARKETS ================= */
 var MARKETS = {
@@ -173,9 +234,9 @@ var SECTIONS = [
   { id:'sec-market',  type:'market',   name:'Country strip',             visible:true, data:{ title:'Shopping from', sub:'Prices, sizes and delivery all change to suit where you are.' } },
   { id:'sec-drop',    type:'drop',     name:'The drop',                  visible:true, data:{ title:'The drop', sub:'This month only. When it sells out, that is it.' } },
   { id:'sec-sig',     type:'signature',name:'Signature cloud hoodie',    visible:true, data:{ title:'The Cloud hoodie', sub:'The one everything else is built around.' } },
-  { id:'sec-shades',  type:'shades',   name:'Five shades of blue',       visible:true, data:{ title:'Seven shades', sub:'Every piece, every colour we make.' } },
+  { id:'sec-shades',  type:'shades',   name:'Five shades of blue',       visible:true, data:{ title:'Five shades of blue', sub:'Every piece, in every colour we make.' } },
   { id:'sec-cats',    type:'cats',     name:'Shop by category',          visible:true, data:{ title:'Everything else', sub:'' } },
-  { id:'sec-quiz',    type:'quiz',     name:'Style quiz',                visible:true, data:{ title:"What's your ooch?", sub:'Two questions. We will pick for you.' } },
+  { id:'sec-quiz',    type:'quiz',     name:'Style quiz',                visible:true, data:{ title:"What's your style?", sub:"Don't know? Take the quiz." } },
   { id:'sec-promise', type:'promise',  name:'No surprises at the door',  visible:true, data:{ title:'No surprises at the door', sub:'' } },
   { id:'sec-news',    type:'news',     name:'Newsletter signup',         visible:false,data:{ title:'Know before everyone else', sub:'Drop dates, first dibs, nothing else.' } }
 ];
@@ -232,16 +293,31 @@ var FLOWS = [
 
 /* ================= STYLE QUIZ ================= */
 var QUIZ = {
-  title: "What's your ooch?",
+  title: "What's your style?",
+  sub: "Don't know? Take the quiz.",
+  /* Every result opens with this line, always. */
+  resultLine: 'We think this is for you',
   questions: [
-    { id:'q1', text:'Comfy or dressed up?', answers:['Comfy','Dressed up'] },
-    { id:'q2', text:'Beach or everyday?',   answers:['Beach','Everyday'] }
+    { id:'priority', text:'What do you put first?', answers:[
+        { value:'comfort', label:'Comfort', sub:'Soft, easy, all day' },
+        { value:'style',   label:'Style',   sub:'Put together, always' } ] },
+    { id:'season', text:'What do you like better?', answers:[
+        { value:'winter', label:'Winter', sub:'Layers and long sleeves' },
+        { value:'summer', label:'Summer', sub:'Light and bare arms' } ] }
   ],
   results: [
-    { id:'r1', when:'Comfy · Beach',      products:['sm01','sw05','ht01','ac05'] },
-    { id:'r2', when:'Comfy · Everyday',   products:['hd01','tp01','bt01','ac06'] },
-    { id:'r3', when:'Dressed up · Beach', products:['sw03','sw04','ht04','ac08'] },
-    { id:'r4', when:'Dressed up · Everyday', products:['hd02','tp03','bt02','ac01'] }
+    { id:'comfort-winter', when:'Comfort · Winter', name:'Cosy season',
+      blurb:'Hoodies you live in and tracksuit pants that go everywhere. Warm, soft, zero effort.',
+      picks:[['hoodie','sky-blue'],['hoodie','navy-blue'],['pant','sky-blue'],['pant','navy-blue']] },
+    { id:'comfort-summer', when:'Comfort · Summer', name:'Easy and loose',
+      blurb:'Nothing clinging, nothing fussy. Loose tees with roomy shorts, skirts and skorts.',
+      picks:[['tee','baby-blue'],['tee','cornflower'],['short',null],['skort','baby-blue']] },
+    { id:'style-summer', when:'Style · Summer', name:'Summer statement',
+      blurb:'Crop tops and flowy one-off tops, with mini shorts, skirts and skorts to match.',
+      picks:[['crop',null],['flowy',null],['skort','navy-blue'],['band-bow','baby-blue']] },
+    { id:'style-winter', when:'Style · Winter', name:'Sharp and layered',
+      blurb:'Pretty long sleeve tops under a proper jacket, finished with dress pants.',
+      picks:[['longsleeve',null],['dresspant',null],['longsleeve','navy-blue'],['crew','navy-blue']] }
   ]
 };
 
@@ -315,6 +391,7 @@ function seed() {
     return Object.assign({}, p, {
       visible: true,
       status: 'published',
+      real: !!p.real,
       alt: p.name + ' in ooch blue',
       desc: 'Soft, considered and made to be worn constantly. Cut a little oversized.',
       care: 'Machine wash cold. Dry flat.',
@@ -323,7 +400,7 @@ function seed() {
     });
   });
   return {
-    v: 4,
+    v: 5,
     products: products,
     categories: CATEGORIES.map(function (c) { return Object.assign({ visible: true }, c); }),
     sections: JSON.parse(JSON.stringify(SECTIONS)),
@@ -367,6 +444,8 @@ var state = load();
    state.palette is created lazily and the store version is deliberately NOT
    bumped: load() only accepts v === 4, so raising it would discard every
    catalogue the girls have already built. */
+var uploadedPhotos = {};   /* productId::colourKey -> /uploads/x.jpg, from the server */
+
 function syncPalette() {
   var p = state && state.palette;
   if (!p) return;
@@ -384,7 +463,7 @@ function load() {
     var raw = global.localStorage.getItem(KEY);
     if (raw) {
       var parsed = JSON.parse(raw);
-      if (parsed && parsed.v === 4) return parsed;
+      if (parsed && parsed.v === 5) return parsed;
     }
   } catch (e) { /* private mode, quota, corrupt — fall through */ }
   return seed();
@@ -542,6 +621,31 @@ var OOCH = {
     for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i];
     return null;
   },
+
+  /* ---- photography ----
+     Returns the image path for a product in a colourway, or null when
+     the piece has not been shot yet and should fall back to vector art. */
+  photoOf: function (p, col) {
+    if (!p) return null;
+    var key = col || (p.cols && p.cols[0]);
+    /* ★2026-08-09 MERGE POINT. Two photo systems meet here and the order
+       matters. The girls' photography is per-COLOURWAY by filename convention
+       (photo prefix + colour key), which is what makes clicking a swatch change
+       the picture — the thing they like most about the site. An admin upload
+       must therefore also be per-colourway, or one uploaded photo would show
+       for every colour and silently kill the switching.
+       Uploads win over the stock shot for the SAME colourway only; every other
+       colour keeps its original photograph. */
+    var up = uploadedPhotos[p.id + '::' + key];
+    if (up) return up;
+    if (!p.photo) return null;
+    return 'assets/' + p.photo + key + '.webp';
+  },
+  /* Set by ooch-sync.js from /api/photos. Kept out of `state` on purpose: it is
+     server-owned, shared by every device, and must not be overwritten when a
+     stale catalogue is adopted. */
+  setUploadedPhotos: function (map) { uploadedPhotos = map || {}; },
+  uploadedPhotos: function () { return uploadedPhotos; },
 
   /* ---- money ---- */
   market: function () { return state.markets[state.settings.market] || state.markets.AU; },

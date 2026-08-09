@@ -211,7 +211,9 @@ const server = http.createServer(async (req, res) => {
     try { body = JSON.parse((await readBody(req, 64 * 1024)).toString('utf8') || '{}'); }
     catch (e) { return json(res, 400, { error: 'bad_json' }); }
     const id = String(body.id || '').trim();
-    if (!id || !/^[\w-]{1,64}$/.test(id)) return json(res, 400, { error: 'bad_id' });
+    /* Keys are productId::colourKey since the 2026-08-09 design merge — an
+       upload replaces one COLOURWAY, not the whole product. */
+    if (!id || !/^[\w-]{1,40}::[\w-]{1,40}$/.test(id)) return json(res, 400, { error: 'bad_id' });
     const map = readPhotos();
     if (body.url) {
       /* Only ever store a path we produced: /uploads/<hex>.<ext>. This is the

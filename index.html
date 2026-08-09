@@ -14,7 +14,7 @@
 <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='40' fill='%238FC9EE'/%3E%3Ctext x='90' y='122' font-family='Georgia,serif' font-style='italic' font-size='84' fill='white' text-anchor='middle'%3Eooch%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Pacifico&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Yellowtail&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 /* ==================================================================
    FLUID FOUNDATION
@@ -95,7 +95,7 @@ header{
 }
 .bar{display:flex;align-items:center;gap:var(--s-3);min-height:clamp(3.2rem,2.8rem + 1.4vw,4.2rem)}
 .mark{
-  font-family:'Pacifico','Baloo 2',cursive;font-weight:400;color:var(--blue-deep);
+  font-family:'Yellowtail','Baloo 2',cursive;font-weight:400;color:var(--blue-deep);
   font-size:clamp(1.6rem,1.2rem + 1.7vw,2.4rem);line-height:1;margin-right:auto;
   background:none;border:0;padding:0;
 }
@@ -128,7 +128,7 @@ header{
   opacity:.94;margin:0;
 }
 .hero .word{
-  font-family:'Pacifico','Baloo 2',cursive;
+  font-family:'Yellowtail','Baloo 2',cursive;
   font-size:var(--f-hero);line-height:1.02;margin:.02em 0 0;font-weight:400;
   letter-spacing:-.01em;text-shadow:0 .06em .2em rgba(20,60,100,.16);
 }
@@ -214,7 +214,16 @@ section{padding-block:var(--s-6)}
   display:grid;gap:var(--s-5);align-items:center;
   grid-template-columns:repeat(auto-fit,minmax(min(100%,18rem),1fr));
 }
-.sig .art{background:var(--wash);border-radius:var(--radius);padding:var(--s-6);display:grid;place-items:center}
+.sig .art{background:var(--wash);border-radius:var(--radius);padding:var(--s-5);display:grid;place-items:center}
+.views{display:flex;gap:.35em;flex-wrap:wrap;margin-top:var(--s-2);justify-content:center}
+.views button{border:1px solid var(--line);background:#fff;border-radius:999px;
+  padding:.4em .9em;font-size:var(--f-xs);font-weight:800;color:var(--ink-soft)}
+.views button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.cnote{font-size:var(--f-sm);color:var(--ink-soft);margin:.5em 0 0}
+.models{display:grid;gap:var(--s-2);grid-template-columns:repeat(auto-fit,minmax(min(100%,7rem),1fr));margin-top:var(--s-4)}
+.models figure{margin:0}
+.models img{border-radius:calc(var(--radius)*.6);width:100%}
+.models figcaption{font-size:var(--f-xs);color:var(--ink-soft);margin-top:.3em;text-align:center}
 .sig .art svg{width:min(100%,22rem)}
 .sig h2{font-size:var(--f-xl)}
 .sig p{color:var(--ink-soft);margin:var(--s-3) 0}
@@ -245,12 +254,32 @@ section{padding-block:var(--s-6)}
 
 /* ---------- quiz ---------- */
 .quiz{background:var(--wash);border-radius:var(--radius);padding:var(--s-5);text-align:center}
-.qopts{display:flex;gap:var(--s-2);flex-wrap:wrap;justify-content:center;margin-top:var(--s-3)}
+.qsub{color:var(--ink-soft);margin:.4em 0 var(--s-4)}
+.qprog{font-size:var(--f-xs);letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:800;margin:0}
+.qtext{font-size:var(--f-lg);margin:.4em 0 var(--s-4)}
+.qopts{display:grid;gap:var(--s-2);justify-content:center;margin-top:var(--s-3);
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,12rem),1fr));max-width:32rem;margin-inline:auto}
 .qopts button{
-  border:1px solid var(--line);background:#fff;border-radius:999px;
-  padding:.65em 1.4em;font-weight:800;font-size:var(--f-sm);
+  border:1px solid var(--line);background:#fff;border-radius:var(--radius);
+  padding:var(--s-4) var(--s-3);display:flex;flex-direction:column;gap:.25em;align-items:center;
 }
-.qopts button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.qopts button b{font-family:'Baloo 2',cursive;font-size:var(--f-md);font-weight:700}
+.qopts button span{font-size:var(--f-xs);color:var(--ink-soft)}
+@media (hover:hover){.qopts button:hover{border-color:var(--blue-deep);transform:translateY(-2px)}}
+.qback{background:none;border:0;color:var(--ink-soft);text-decoration:underline;
+  font-weight:700;font-size:var(--f-sm);margin-top:var(--s-4);padding:.5em}
+.qline{font-family:'Yellowtail',cursive;font-size:var(--f-lg);color:var(--blue-deep);margin:0}
+.qname{font-size:var(--f-xl);margin:.15em 0 .3em}
+.qblurb{color:var(--ink-soft);max-width:44ch;margin:0 auto var(--s-4)}
+.qgrid{display:grid;gap:var(--s-2);grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr))}
+.qcard{background:#fff;border:1px solid var(--line);border-radius:var(--radius);
+  padding:var(--s-3);display:flex;flex-direction:column;gap:.3em;align-items:center}
+.qshot{width:100%;aspect-ratio:4/5;display:grid;place-items:center}
+.qshot svg{width:80%;height:80%}
+.qcard b{font-size:var(--f-sm)}
+.qcard span{font-size:var(--f-xs);color:var(--blue-deep);font-weight:800}
+.qcard button{margin-top:.3em;background:var(--ink);color:#fff;border:0;border-radius:999px;
+  padding:.45em 1em;font-size:var(--f-xs);font-weight:800}
 
 /* ---------- promise ---------- */
 .promise{background:var(--ink);color:#fff;border-radius:var(--radius);padding:var(--s-5)}
@@ -408,16 +437,18 @@ function el(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){
   return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function art(p, col){
-  /* A real photograph uploaded in the admin wins over the vector drawing.
-     Falls straight back to the drawing if there is no photo, so a product
-     without one looks exactly as it did before. */
-  if(p && p.img) return '<img src="'+esc(p.img)+'" alt="'+esc(p.alt||p.name)+'" loading="lazy" '+
-    'style="inline-size:100%;block-size:100%;object-fit:cover;display:block">';
-  var fn = O.ART[p.art] || O.ART.tee;
   var key = col || (p.cols && p.cols[0]);
-  var swatch = O.COLOURS[key];
-  if(!swatch) swatch = O.COLOURS[Object.keys(O.COLOURS)[0]];
+  var photo = O.photoOf(p, key);
+  if(photo){
+    return '<img src="'+photo+'" alt="'+esc(p.name+' in '+(O.COLOURS[key]?O.COLOURS[key].name:key))+
+      '" loading="lazy" decoding="async" class="pshot">';
+  }
+  var fn = O.ART[p.art] || O.ART.tee;
+  var swatch = O.COLOURS[key] || O.COLOURS[Object.keys(O.COLOURS)[0]];
   return fn(swatch.hex, p.name);
+}
+function shotOf(name, alt){
+  return '<img src="assets/'+name+'.webp" alt="'+esc(alt||'')+'" loading="lazy" decoding="async" class="pshot">';
 }
 var pick = {};  /* selected colour per product */
 
@@ -496,15 +527,28 @@ SEC.signature = function(s){
   var p = O.liveProducts().filter(function(x){ return x.signature; })[0];
   if(!p) return '';
   var col = pick[p.id] || p.cols[0];
+  var vkey = 'view_'+p.id;
+  var view = pick[vkey] || null;
+  var stage = view ? shotOf(view, p.name+' — '+view) : art(p,col);
   return '<section><div class="wrap"><div class="sig">'+
-    '<div class="art">'+art(p,col)+'</div>'+
+    '<div><div class="art">'+stage+'</div>'+
+    (p.views? '<div class="views">'+
+      '<button aria-pressed="'+(!view)+'" onclick="setView(\''+p.id+'\',null)">Colours</button>'+
+      p.views.map(function(v){
+        return '<button aria-pressed="'+(view===v[0])+'" onclick="setView(\''+p.id+'\',\''+v[0]+'\')">'+esc(v[1])+'</button>';
+      }).join('')+'</div>':'')+
+    '</div>'+
     '<div><h2>'+esc(s.data.title)+'</h2><p>'+esc(s.data.sub)+'</p>'+
     '<div class="sws">'+p.cols.map(function(c){
       return '<button class="sw" style="background:'+O.COLOURS[c].hex+'" aria-pressed="'+(c===col)+
         '" aria-label="'+esc(O.COLOURS[c].name)+'" onclick="setCol(\''+p.id+'\',\''+c+'\')"></button>';
     }).join('')+'</div>'+
+    '<p class="cnote">'+esc(O.COLOURS[col].name)+' — '+esc(O.COLOURS[col].note)+'</p>'+
     '<div class="tiles"><div><b>'+esc(O.fmt(O.priceOf(p)))+'</b>'+(O.market().incl?'incl. tax':'plus tax')+'</div>'+
     '<div><b>'+p.cols.length+'</b>colourways</div><div><b>'+p.sizes.length+'</b>sizes</div></div>'+
+    (p.models? '<div class="models">'+p.models.map(function(m){
+      return '<figure>'+shotOf(m[0], p.name+' — '+m[1])+'<figcaption>'+esc(m[1])+'</figcaption></figure>';
+    }).join('')+'</div>':'')+
     '<button class="addbtn" style="margin-top:var(--s-4);max-width:16rem" onclick="go(\'product\',\''+p.id+'\')">See it</button>'+
     '</div></div></div></section>';
 };
@@ -537,25 +581,44 @@ SEC.cats = function(s){
 };
 
 SEC.quiz = function(s){
-  var opts = [['vibe','Comfy','Dressed up'],['season','Beach','Everyday']];
-  var done = quiz.vibe && quiz.season;
-  var res = '';
-  if(done){
-    var wantSwim = quiz.season==='Beach';
-    var list = O.liveProducts().filter(function(p){
-      var isSwim = p.cat.indexOf('swim')===0;
-      return wantSwim ? isSwim : !isSwim;
-    }).slice(0,4);
-    res = '<p style="margin-top:var(--s-4);font-weight:800">We think this is for you.</p>'+
-      '<div class="grid" style="margin-top:var(--s-3)">'+list.map(function(p){return cardHTML(p);}).join('')+'</div>';
+  var q = O.state.quiz;
+  var answered = q.questions.filter(function(qq){ return quiz[qq.id]; }).length;
+  var done = answered === q.questions.length;
+
+  var body = '';
+  if(!done){
+    var current = q.questions.filter(function(qq){ return !quiz[qq.id]; })[0];
+    body = '<p class="qprog">Question '+(answered+1)+' of '+q.questions.length+'</p>'+
+      '<h3 class="qtext">'+esc(current.text)+'</h3>'+
+      '<div class="qopts">'+current.answers.map(function(a){
+        return '<button onclick="setQuiz(\''+current.id+'\',\''+a.value+'\')">'+
+          '<b>'+esc(a.label)+'</b><span>'+esc(a.sub)+'</span></button>';
+      }).join('')+'</div>'+
+      (answered? '<button class="qback" onclick="backQuiz()">Back</button>':'');
+  } else {
+    var key = q.questions.map(function(qq){ return quiz[qq.id]; }).join('-');
+    var res = q.results.filter(function(r){ return r.id===key; })[0] || q.results[0];
+    var picks = res.picks.map(function(pk){
+      var p = O.product(pk[0]);
+      if(!p || !p.visible || p.status!=='published') return '';
+      var col = pk[1] && p.cols.indexOf(pk[1])>-1 ? pk[1] : p.cols[0];
+      var dupe = res.picks.filter(function(o){ return o[0]===pk[0]; }).length > 1;
+      var label = dupe && O.COLOURS[col] ? p.name+' in '+O.COLOURS[col].name.toLowerCase() : p.name;
+      return '<article class="qcard"><div class="qshot">'+art(p,col)+'</div>'+
+        '<b>'+esc(label)+'</b><span>'+esc(O.fmt(O.priceOf(p)))+'</span>'+
+        '<button onclick="go(\'product\',\''+p.id+'\')">See it</button></article>';
+    }).join('');
+    body = '<p class="qline">'+esc(q.resultLine)+'</p>'+
+      '<h3 class="qname">'+esc(res.name)+'</h3>'+
+      '<p class="qblurb">'+esc(res.blurb)+'</p>'+
+      '<div class="qgrid">'+picks+'</div>'+
+      '<button class="qback" onclick="resetQuiz()">Take it again</button>';
   }
-  return '<section><div class="wrap"><div class="quiz"><h2>'+esc(s.data.title)+'</h2>'+
-    '<p style="color:var(--ink-soft)">'+esc(s.data.sub)+'</p>'+
-    opts.map(function(o){
-      return '<div class="qopts">'+o.slice(1).map(function(v){
-        return '<button aria-pressed="'+(quiz[o[0]]===v)+'" onclick="setQuiz(\''+o[0]+'\',\''+v+'\')">'+v+'</button>';
-      }).join('')+'</div>';
-    }).join('')+res+'</div></div></section>';
+
+  return '<section><div class="wrap"><div class="quiz">'+
+    '<h2>'+esc(s.data.title||q.title)+'</h2>'+
+    '<p class="qsub">'+esc(s.data.sub||q.sub)+'</p>'+
+    body+'</div></div></section>';
 };
 
 SEC.promise = function(s){
@@ -768,8 +831,15 @@ window.toastMsg = toast;
 window.setMk = function(c){ O.setMarket(c); toast('Now showing '+O.state.markets[c].name+' prices'); };
 window.setCol = function(pid,c){ pick[pid]=c; render(); };
 window.setShade = function(c){ pick.__shade=c; render(); };
+window.setView = function(pid,v){ if(v) pick['view_'+pid]=v; else delete pick['view_'+pid]; render(); };
 window.setSize = function(pid,sz){ pick['sz_'+pid]=sz; render(); };
 window.setQuiz = function(k,v){ quiz[k]=v; render(); };
+window.backQuiz = function(){
+  var qs = O.state.quiz.questions;
+  for(var i=qs.length-1;i>=0;i--){ if(quiz[qs[i].id]){ delete quiz[qs[i].id]; break; } }
+  render();
+};
+window.resetQuiz = function(){ quiz = {}; render(); };
 window.addToBag = function(pid){
   var p = O.product(pid); if(!p) return;
   var col = pick[pid]||p.cols[0], sz = pick['sz_'+pid];
@@ -815,21 +885,9 @@ function checkBuild(){
     })
     .catch(function(){});
 }
-function syncPhotos(){
-  fetch('/api/photos', { cache:'no-store' })
-    .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(map){
-      if(!map) return;
-      var changed = false;
-      O.state.products.forEach(function(p){
-        var url = map[p.id] || null;
-        if(url){ if(p.img !== url){ p.img = url; changed = true; } }
-        else if(p.img){ delete p.img; changed = true; }
-      });
-      if(changed) O.commit();   /* saves locally and re-renders */
-    })
-    .catch(function(){});
-}
+/* old product-level photo sync removed 2026-08-09 — photos are per-colourway
+   now and arrive via ooch-sync.js -> O.setUploadedPhotos(). */
+function syncPhotos(){}
 })();
 </script>
 </body>
