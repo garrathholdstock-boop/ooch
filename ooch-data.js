@@ -428,6 +428,12 @@ var OOCH = {
     syncPalette();
     return key;
   },
+  /* Re-read from storage and tell everyone. Used by ooch-sync.js when it
+     adopts a newer catalogue from the server: `state` is behind a getter with
+     no setter, so this is the honest way to swap it without reloading the page
+     under someone's hands. Emits as REMOTE, because from this page's point of
+     view the change did come from elsewhere. */
+  reload: function () { state = load(); syncPalette(); emit(true); },
   colourKeys: function () { return Object.keys(COLOURS); },
   isCustom: function (key) { return !!(state.palette && state.palette[key]); },
   reset: function () { state = seed(); save(); emit(false); },

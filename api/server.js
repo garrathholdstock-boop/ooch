@@ -30,6 +30,7 @@ const PORT = 8110;
 const HOST = '127.0.0.1';                 // nginx fronts this; never bind public
 const UPLOAD_DIR = '/srv/ooch/data/uploads';
 const PHOTOS_FILE = '/srv/ooch/data/photos.json';
+const STATE_FILE = '/srv/ooch/data/state.json';
 const MAX_BYTES = 12 * 1024 * 1024;       // 12 MB — a phone photo, comfortably
 
 /* ★ TOTAL QUOTA (2026-08-09). The admin is deliberately open, so this endpoint
@@ -153,6 +154,49 @@ const server = http.createServer(async (req, res) => {
     } catch (e) {
       return json(res, 500, { error: 'list_failed' });
     }
+  }
+
+  /* ★★ SHARED CATALOGUE (2026-08-09).
+     Photos were shared but nothing else was, so text edited in the admin on one
+     device never reached a shop open on another — and on iOS a Home Screen app
+     has a different storage container from Safari, so that is true even on ONE
+     phone. Everything now lives here.
+     Conflict rule is LAST WRITE WINS, by the client's own timestamp. With two
+     or three people editing a demo that is the intuitive behaviour: whoever
+     typed most recently is what everybody sees. It is NOT safe for genuine
+     concurrent editing — two people editing different products at the same
+     moment will have one overwrite the other. That is a real limitation and the
+     reason this needs proper per-record merging before the shop is real. */
+  if (url.pathname === '/api/state' && req.method === 'GET') {
+    try {
+      const raw = fs.readFileSync(STATE_FILE, 'utf8');
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+      return res.end(raw);
+    } catch (e) {
+      return json(res, 200, { ts: 0, state: null });   // nothing published yet
+    }
+  }
+
+  if (url.pathname === '/api/state' && (req.method === 'POST' || req.method === 'PUT')) {
+    let body;
+    try { body = JSON.parse((await readBody(req, 8 * 1024 * 1024)).toString('utf8') || '{}'); }
+    catch (e) { return json(res, 400, { error: 'bad_json' }); }
+    if (!body || typeof body.ts !== 'number' || !body.state || typeof body.state !== 'object') {
+      return json(res, 400, { error: 'bad_payload' });
+    }
+    /* Refuse a stale write outright rather than letting a device that has been
+       asleep clobber newer work when it wakes up and pushes what it remembers. */
+    let cur = { ts: 0 };
+    try { cur = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8')); } catch (e) {}
+    if (cur && typeof cur.ts === 'number' && body.ts < cur.ts) {
+      return json(res, 409, { error: 'stale', serverTs: cur.ts, yourTs: body.ts });
+    }
+    try {
+      const tmp = STATE_FILE + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify({ ts: body.ts, state: body.state }), { mode: 0o644 });
+      fs.renameSync(tmp, STATE_FILE);
+    } catch (e) { return json(res, 500, { error: 'write_failed' }); }
+    return json(res, 200, { ok: true, ts: body.ts });
   }
 
   /* The whole map, fetched by both the shop and the admin at startup. */
