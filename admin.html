@@ -707,7 +707,22 @@ function productEditor(p){
     '<div class="panel"><h3>Danger zone</h3><div class="pad">'+
       '<button class="btn ghost" onclick="toggleProduct(\''+p.id+'\')">'+(p.visible?'Hide from the website':'Show on the website')+'</button> '+
       '<button class="btn danger" onclick="delProduct(\''+p.id+'\')">Delete permanently</button>'+
-      '<p class="hint">Hiding keeps the product and its sales history. Deleting removes it from everywhere, including the analytics.</p></div></div>';
+      '<p class="hint">Hiding keeps the product and its sales history. Deleting removes it from everywhere, including the analytics.</p></div></div>'+
+    /* ★ SAVE BAR (added 2026-08-09, operator request). Every edit is already
+       written the moment it is typed — there is no unsaved state to lose. But
+       "it saves automatically" is a claim you have to take on trust, and nobody
+       should have to. This says so out loud, stays stuck to the bottom of the
+       screen while you scroll, and gives the button people look for. Save &
+       close commits and returns, so pressing it does what it says even though
+       the work was already done. */
+    '<div class="panel" style="position:sticky;bottom:0;z-index:5;box-shadow:0 -6px 16px rgba(0,0,0,.10)">'+
+      '<div class="pad" style="display:flex;gap:.75em;align-items:center;justify-content:space-between;flex-wrap:wrap">'+
+        '<span class="hint" style="margin:0">✓ '+esc(savedAgo())+'</span>'+
+        '<span style="display:flex;gap:.5em">'+
+          '<button class="btn ghost" onclick="closeProduct()">Back</button>'+
+          '<button class="btn" onclick="saveAndClose()">Save &amp; close</button>'+
+        '</span>'+
+      '</div></div>';
 }
 
 /* ---------- CATEGORIES ---------- */
@@ -1121,6 +1136,14 @@ window.setRange = function(r){ range=r; render(); };
 window.setDrill = function(d){ drill=d; render(); window.scrollTo(0,0); };
 window.openProduct = function(id){ view='products'; editing=id; render(); window.scrollTo(0,0); };
 window.closeProduct = function(){ editing=null; render(); };
+/* The edits are already saved; this commits once more so the button is honest
+   about what it does, confirms it, and gets you back to the list. */
+window.saveAndClose = function(){
+  if(document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  O.commit();
+  toast('Saved');
+  editing=null; render();
+};
 window.toggleProduct = function(id){ var p=O.product(id); if(!p)return; p.visible=!p.visible; O.commit();
   toast(p.name+(p.visible?' is back on the website':' is hidden from the website')); };
 window.delProduct = function(id){ var p=O.product(id); if(!p)return;
@@ -1365,6 +1388,10 @@ function render(){
     }
   }
 
+  /* Hold the scroll position across the rebuild as well as the focus. Without
+     this the page lurches to the top whenever anything re-renders. */
+  var sy = window.pageYOffset || document.documentElement.scrollTop || 0;
+
   renderNav();
   el('main').innerHTML = (V[view]||V.dash)();
 
@@ -1372,13 +1399,57 @@ function render(){
     var same = fields().filter(function(n){ return keyOf(n) === mem.k; });
     var n2 = same[mem.idx] || same[0];
     if(n2){
-      n2.focus();
+      /* preventScroll stops .focus() yanking the viewport to the element — the
+         scroll restore below is what decides where the page sits. */
+      try { n2.focus({ preventScroll:true }); } catch(err){ n2.focus(); }
       if(mem.s != null){ try { n2.setSelectionRange(mem.s, mem.e); } catch(err){} }
     }
   }
+  if(sy) window.scrollTo(0, sy);
 }
 
-O.on(function(state, remote){ render(); if(remote) toast('Updated in another tab'); });
+/* "Saved" needs to be visible, not assumed — see the save bar in the product
+   view. Updated on every commit, read by that bar. */
+var lastSaved = null;
+function stampSaved(){ lastSaved = new Date(); }
+function savedAgo(){
+  if(!lastSaved) return 'Changes save automatically';
+  var s = Math.round((Date.now() - lastSaved.getTime())/1000);
+  if(s < 3)  return 'All changes saved just now';
+  if(s < 60) return 'All changes saved ' + s + ' seconds ago';
+  var m = Math.round(s/60);
+  return 'All changes saved ' + m + ' minute' + (m>1?'s':'') + ' ago';
+}
+
+/* ★★ DO NOT REBUILD THE PAGE WHILE SOMEONE IS TYPING (fixed 2026-08-09).
+   Restoring focus stopped the field ejecting you, but every keystroke was still
+   tearing down and rebuilding the entire view — so the page visibly jumped:
+   panels above the field change height as derived values (margin, the issues
+   list) recalculate, and the scroll position moves under your hands. Deleting a
+   character was the worst of it, because the issues panel appears and vanishes.
+   The typed character is ALREADY in the input — re-rendering to show what the
+   browser has just drawn buys nothing. So local edits made while a text field
+   has focus skip the rebuild entirely, and the view refreshes when focus leaves.
+   Other tabs and the shop still update instantly: O.commit() has already written
+   localStorage and posted to the BroadcastChannel before this listener runs. */
+function isTextField(n){
+  return !!n && /^(INPUT|TEXTAREA)$/.test(n.tagName || '') &&
+         !/^(checkbox|radio|button|submit|file|range|color)$/.test(n.type || '');
+}
+O.on(function(state, remote){
+  stampSaved();
+  if(!remote && isTextField(document.activeElement)) return;   /* typing — leave the DOM alone */
+  render();
+  if(remote) toast('Updated in another tab');
+});
+
+/* Refresh once the field is left, so margins, warnings and prices catch up.
+   Delayed and re-checked because tabbing between fields fires focusout too, and
+   rebuilding between two fields would throw away the focus we just restored. */
+document.addEventListener('focusout', function(e){
+  if(!isTextField(e.target)) return;
+  setTimeout(function(){ if(!isTextField(document.activeElement)) render(); }, 60);
+}, true);
 var rz; window.addEventListener('resize', function(){ clearTimeout(rz); rz=setTimeout(render,180); }, {passive:true});
 render();
 
