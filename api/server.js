@@ -32,6 +32,26 @@ const UPLOAD_DIR = '/srv/ooch/data/uploads';
 const PHOTOS_FILE = '/srv/ooch/data/photos.json';
 const MAX_BYTES = 12 * 1024 * 1024;       // 12 MB — a phone photo, comfortably
 
+/* ★ TOTAL QUOTA (2026-08-09). The admin is deliberately open, so this endpoint
+   is an unauthenticated write to disk that anyone who finds the URL can use.
+   A per-file limit does not bound that: 12 MB x N still fills the volume, and
+   THIS BOX ALSO RUNS A LIVE TRADING DESK whose capture.db needs room to write.
+   A full disk would take the desk down as collateral damage from a toy shop.
+   A ceiling on the whole uploads directory removes that path: the worst case
+   becomes "the shop stops accepting photos", a nuisance rather than an
+   incident. 2 GB is roughly 6,000 resized photos; the demo currently uses 14 MB. */
+const MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024;
+
+function uploadsTotal() {
+  var total = 0;
+  try {
+    for (const f of fs.readdirSync(UPLOAD_DIR)) {
+      try { total += fs.statSync(path.join(UPLOAD_DIR, f)).size; } catch (e) {}
+    }
+  } catch (e) {}
+  return total;
+}
+
 /* ★ THE PHOTO MAP — productId -> /uploads/x.jpg, held on the SERVER.
    Added 2026-08-09 after a photo uploaded on an iPhone showed in the admin and
    not on the shop. The upload itself was fine; the problem was that "which
@@ -112,7 +132,11 @@ const server = http.createServer(async (req, res) => {
   if (url.pathname === '/api/health') {
     let n = 0;
     try { n = fs.readdirSync(UPLOAD_DIR).length; } catch (e) {}
-    return json(res, 200, { ok: true, uploads: n, build: buildId() });
+    const used = uploadsTotal();
+    return json(res, 200, {
+      ok: true, uploads: n, build: buildId(),
+      usedMB: Math.round(used / 1048576), capMB: Math.round(MAX_TOTAL_BYTES / 1048576)
+    });
   }
 
   /* List what has been uploaded, newest first — lets the admin offer a
@@ -168,6 +192,17 @@ const server = http.createServer(async (req, res) => {
       return json(res, 413, { error: 'too_large', maxMB: MAX_BYTES / 1024 / 1024 });
     }
     if (!buf || !buf.length) return json(res, 400, { error: 'empty' });
+
+    /* Checked AFTER the body is read but BEFORE anything is written, so a
+       request can never leave a partial file behind once the quota is hit. */
+    const used = uploadsTotal();
+    if (used + buf.length > MAX_TOTAL_BYTES) {
+      return json(res, 507, {
+        error: 'quota_full',
+        detail: 'The photo store is full. Delete some photos, or raise MAX_TOTAL_BYTES.',
+        usedMB: Math.round(used / 1048576), capMB: Math.round(MAX_TOTAL_BYTES / 1048576)
+      });
+    }
 
     const kind = sniff(buf);
     if (!kind) {
