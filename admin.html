@@ -1205,10 +1205,11 @@ function shrinkImage(file){
 window.uploadPhoto = function(id, input){
   var f = input && input.files && input.files[0];
   if(!f) return;
-  /* Re-query the hint every time rather than capturing it once: O.commit()
-     re-renders the whole panel, so a captured node is detached by the time the
-     "done" message is written and the size report would never be seen. */
-  function say(m){ var h = el('up-'+id); if(h) h.textContent = m; }
+  /* Look the hint up on EVERY call rather than capturing it once: O.commit()
+     re-renders the whole panel, so a node captured up front is detached by the
+     time the "done" message is written and the size report would never appear.
+     Deliberately no local variable — a capture is the thing that goes stale. */
+  function say(m){ if(el('up-'+id)) el('up-'+id).textContent = m; }
   var wasMB = (f.size/1048576).toFixed(1);
   say('Preparing ' + f.name + ' (' + wasMB + ' MB)…');
 
@@ -1334,9 +1335,47 @@ function renderNav(){
 }
 window.jump = function(v){ view=v; editing=null; render(); window.scrollTo(0,0); };
 
+/* ★★ FOCUS-PRESERVING RENDER (fixed 2026-08-09).
+   Every live-edit field is  oninput -> editX() -> O.commit() -> the O.on
+   listener -> render() -> main.innerHTML = ...  which DESTROYS the very input
+   being typed into and builds a new one. The symptom is that a text field
+   accepts one character and then throws you out; it affected all 26 editable
+   fields (editField, editSec, editSetting, editDrop, editOverride, editPromo,
+   editPage, editQuizQ, editQuizA).
+   Fixing it here rather than in 26 handlers, because the bug is the rebuild,
+   not the fields. The inputs have no ids, so the handler attribute is used as
+   the identity — it is unique per field ("editField('sw01','name',...)") and
+   survives the rebuild verbatim. Where several fields share a handler string,
+   the index among them disambiguates. */
 function render(){
+  var a = document.activeElement, mem = null;
+  function keyOf(n){
+    return n.getAttribute('oninput') || n.getAttribute('onchange') || n.getAttribute('onclick') || null;
+  }
+  function fields(){
+    return Array.prototype.slice.call(document.querySelectorAll('input,textarea,select'));
+  }
+  if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName || '')){
+    var k = keyOf(a);
+    if(k){
+      mem = { k:k, idx: fields().filter(function(n){ return keyOf(n) === k; }).indexOf(a), s:null, e:null };
+      /* selectionStart throws on number/date inputs in some browsers — the
+         caret is then simply not restored, but focus still is. */
+      try { mem.s = a.selectionStart; mem.e = a.selectionEnd; } catch(err){}
+    }
+  }
+
   renderNav();
   el('main').innerHTML = (V[view]||V.dash)();
+
+  if(mem){
+    var same = fields().filter(function(n){ return keyOf(n) === mem.k; });
+    var n2 = same[mem.idx] || same[0];
+    if(n2){
+      n2.focus();
+      if(mem.s != null){ try { n2.setSelectionRange(mem.s, mem.e); } catch(err){} }
+    }
+  }
 }
 
 O.on(function(state, remote){ render(); if(remote) toast('Updated in another tab'); });

@@ -64,6 +64,48 @@ for (const file of files) {
   console.log(`  ${wanted.size} element id(s) looked up`);
   if (noId.length) console.log('  ⚠ looked up but no literal id in markup (may be built at runtime): ' + noId.join(', '));
   else console.log('  ✓ every looked-up id appears in the markup');
+
+  /* 4. FOCUS-LOSS ON RE-RENDER.
+     A live-edit field (oninput=) whose handler commits state, in a page that
+     rebuilds by replacing innerHTML wholesale, destroys the input being typed
+     into: the field takes one character and then drops focus. Invisible to a
+     syntax check and to a handler-existence check — the code is perfectly
+     valid, it simply cannot be typed into. Found in admin.html 2026-08-09
+     affecting all 26 editable fields. */
+  const liveFields = [...src.matchAll(/\soninput\s*=\s*"([^"]*)"/gi)].map((m) => m[1]);
+  const rebuilds = /innerHTML\s*=/.test(js);
+  const preserves = /activeElement/.test(js);
+  console.log(`  ${liveFields.length} live-edit field(s) (oninput=)`);
+  if (liveFields.length && rebuilds && !preserves) {
+    console.log('  ✗ FOCUS-LOSS: page has oninput fields AND rebuilds via innerHTML, but never');
+    console.log('    reads document.activeElement — typing drops focus on every keystroke.');
+    problems++;
+  } else if (liveFields.length && rebuilds) {
+    console.log('  ✓ rebuilds via innerHTML but preserves focus (reads activeElement)');
+  } else if (liveFields.length) {
+    console.log('  ✓ live-edit fields present, no wholesale innerHTML rebuild');
+  }
+
+  /* 5. Writing to an element captured BEFORE a rebuild writes to a detached
+     node. Bit us once with the upload status line, which lived inside the
+     rebuilt panel.
+     ⚠ Only nodes INSIDE the rebuilt container are at risk. A captured node that
+     is part of the static skeleton (the toast, which is a sibling of <main>)
+     survives every rebuild and must not be reported — a check that cries wolf
+     gets ignored, which is how the real one gets missed. So: warn only for
+     captures whose id is built at runtime, or is absent from the skeleton. */
+  const captured = [...js.matchAll(/(?:var|let|const)\s+\w+\s*=\s*el\(\s*([^)]+)\)/g)].map((m) => m[1].trim());
+  const risky = captured.filter((expr) => {
+    if (/\+/.test(expr)) return true;                       // built at runtime -> inside the rebuild
+    const lit = expr.replace(/^['"]|['"]$/g, '');
+    return !present.has(lit);                               // not in the static skeleton
+  });
+  if (risky.length && /\.then\s*\(|setTimeout/.test(js)) {
+    console.log('  ⚠ node(s) captured before a rebuild and used asynchronously: ' + risky.join(', '));
+    console.log('    re-query inside the callback instead of capturing once.');
+  } else if (captured.length) {
+    console.log(`  ✓ ${captured.length} captured node(s), all part of the static skeleton (survive rebuilds)`);
+  }
 }
 
 console.log('\n' + (problems ? `✗ ${problems} problem(s)` : '✓ no blocking problems found'));
