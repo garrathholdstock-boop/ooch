@@ -227,6 +227,30 @@ const CSS = `
 }
 
 .ooch *{box-sizing:border-box;}
+
+.ooch-ed{cursor:pointer;border-bottom:1.5px dashed rgba(31,68,96,.45);position:relative;}
+.ooch-ed:hover{background:rgba(191,225,246,.55);border-radius:4px;}
+.ooch-pen{font-size:.7em;opacity:.55;margin-left:.25em;vertical-align:super;}
+.ooch-edin{font:inherit;color:inherit;padding:.1em .3em;border:2px solid var(--deep);border-radius:6px;
+  background:#fff;min-width:4em;max-width:100%;}
+.ooch-edimg{cursor:pointer;outline:2px dashed rgba(31,68,96,.55);outline-offset:-4px;}
+.ooch-edimg:hover{outline-color:var(--deep);outline-style:solid;}
+.ooch-editbar{position:fixed;left:0;right:0;bottom:0;z-index:900;display:flex;gap:10px;align-items:center;
+  flex-wrap:wrap;padding:10px 14px;background:rgba(255,255,255,.97);border-top:2px solid var(--deep);
+  box-shadow:0 -6px 20px rgba(24,70,110,.16);}
+.ooch-btn{background:var(--deep);color:#fff;border:none;border-radius:999px;padding:.5em 1.1em;font-weight:800;cursor:pointer;}
+.ooch-btn.ghost{background:var(--powder);color:var(--deep);}
+.ooch-btn:disabled{opacity:.45;cursor:not-allowed;}
+.ooch-hint{color:var(--mid);font-size:13px;}
+.ooch-modal{position:fixed;inset:0;background:rgba(31,68,96,.5);z-index:950;display:grid;place-items:center;padding:14px;}
+.ooch-modal>div{background:#fff;border-radius:20px;max-width:720px;width:100%;max-height:86vh;overflow:auto;padding:16px;}
+.ooch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin-top:8px;}
+.ooch-grid figure{margin:0;cursor:pointer;border:2px solid transparent;border-radius:8px;overflow:hidden;}
+.ooch-grid figure:hover{border-color:var(--deep);}
+.ooch-grid img{width:100%;height:84px;object-fit:cover;display:block;}
+.ooch-grid figcaption{font-size:10px;padding:2px;color:var(--mid);word-break:break-all;}
+body.ooch-editing{padding-bottom:64px;}
+
 /* overflow-x is CLIP, not hidden — 2026-08-10. Setting it to hidden makes this
    element a scroll container, and position:sticky then sticks relative to IT
    rather than to the viewport. Because .ooch wraps the whole page and scrolls
@@ -1203,7 +1227,7 @@ function Showcase({ product, saved, onSave, onAdd }) {
     <div className="show">
       <div className="stage">
         {PAL.map((col, n) => (
-          <img key={col.key} src={IMG[`${style}-${col.key}`]}
+          <EditableImg key={col.key} name={`${style}-${col.key}`}
                alt={`${product.name} in ${col.name}`} className={n === i ? "on" : ""} />
         ))}
         <button className="heart" onClick={() => onSave(product.id, product.name)}
@@ -1290,7 +1314,7 @@ function Dress({ dress, saved, onSave, onAdd }) {
              onClick={() => setBox(v)}
              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setBox(v)}>
           {dress.views.map((s, n) => (
-            <img key={s.key} src={IMG[s.key]} alt={`${dress.name}, ${s.label.toLowerCase()}`}
+            <EditableImg key={s.key} name={s.key} alt={`${dress.name}, ${s.label.toLowerCase()}`}
                  className={n === v ? "on" : ""} />
           ))}
           <button className="heart" onClick={(e) => { e.stopPropagation(); onSave(dress.id, dress.name); }}
@@ -1304,7 +1328,7 @@ function Dress({ dress, saved, onSave, onAdd }) {
           {dress.views.map((s, n) => (
             <button key={s.key} className="thumb" aria-pressed={n === v}
                     aria-label={s.label} onClick={() => setV(n)}>
-              <img src={IMG[s.key]} alt="" />
+              <EditableImg name={s.key} alt="" />
             </button>
           ))}
         </div>
@@ -1321,7 +1345,7 @@ function Dress({ dress, saved, onSave, onAdd }) {
 
       <div className="dbuy">
         <span className="price" style={{ fontSize: 24 }}>${dress.price}</span>
-        <button className="btn btn-solid" onClick={() => onAdd(`${dress.name} · ${size}`, dress.price)}>{COPY.addToBag}</button>
+        <button className="btn btn-solid" onClick={() => onAdd(`${dress.name} · ${size}`, dress.price)}>{ed("addToBag")}</button>
       </div>
 
       <div className="dcolours">
@@ -1336,7 +1360,7 @@ function Dress({ dress, saved, onSave, onAdd }) {
             <button className="dtile" key={d.key}
                     onClick={() => setBox(dress.views.length + n)}
                     aria-label={`Open photo: ${d.title}`}>
-              <img src={IMG[d.key]} alt={d.title} />
+              <EditableImg name={d.key} alt={d.title} />
               <strong>{d.title}</strong>
               <span>{d.note}</span>
             </button>
@@ -1356,7 +1380,7 @@ function Dress({ dress, saved, onSave, onAdd }) {
           {dress.models.map((m, n) => (
             <button key={m} onClick={() => setBox(dress.views.length + dress.details.length + n)}
                     aria-label={`Open worn photo ${n + 1}`}>
-              <img src={IMG[m]} alt={`${dress.name} worn`} />
+              <EditableImg name={m} alt={`${dress.name} worn`} />
               <span className="zoom" aria-hidden="true">⤢</span>
             </button>
           ))}
@@ -1394,7 +1418,7 @@ function SetCard({ set, onAdd }) {
      unbounded it produced $-69 at 150%, $NaN at "abc", and a negative subtotal —
      reachable by typing, not just through the raw editor. A shop must never
      quote a negative price, so nonsense is treated as no discount. */
-  const pctRaw = Number(COPY.setDiscountPercent);
+  const pctRaw = Number(cv("setDiscountPercent"));
   const pct = Number.isFinite(pctRaw) ? Math.min(90, Math.max(0, pctRaw)) : 0;
   const now = Math.round(full * (1 - pct / 100));
 
@@ -1403,7 +1427,7 @@ function SetCard({ set, onAdd }) {
       <div className={`setpics n${items.length}`}>
         {items.map((it) => (
           <div className="setpic" key={it.img || it.prefix}>
-            <img src={IMG[set.fixed ? it.img : `${it.prefix}-${c.key}`]}
+            <EditableImg name={set.fixed ? it.img : `${it.prefix}-${c.key}`}
                  alt={set.fixed ? it.name : `${it.name} in ${c.name}`} />
             <span>{it.name}</span>
           </div>
@@ -1522,7 +1546,7 @@ function SizeGuide() {
         </table>
       </div>
 
-      <p className="sgtip">{COPY.sizeTip}</p>
+      <p className="sgtip">{ed("sizeTip")}</p>
     </div>
   );
 }
@@ -1570,9 +1594,9 @@ function CatalogueSheet({ title, note, banner, chips, cat, onCat, photos, featur
       <div className="cataloguewrap">
         {banner && (
           <div className="limitedhead">
-            <span className="limitedtag">{COPY.limitedTag}</span>
-            <h2>{COPY.limitedTitle}</h2>
-            <p>{COPY.limitedBody}</p>
+            <span className="limitedtag">{ed("limitedTag")}</span>
+            <h2>{ed("limitedTitle")}</h2>
+            <p>{ed("limitedBody")}</p>
           </div>
         )}
 
@@ -1588,9 +1612,9 @@ function CatalogueSheet({ title, note, banner, chips, cat, onCat, photos, featur
 
         {empty ? (
           <div className="emptycat">
-            <h3>{COPY.emptyTitle}</h3>
-            <p>{COPY.emptyBody}</p>
-            <button className="btn btn-solid" onClick={onClose}>{COPY.emptyCta}</button>
+            <h3>{ed("emptyTitle")}</h3>
+            <p>{ed("emptyBody")}</p>
+            <button className="btn btn-solid" onClick={onClose}>{ed("emptyCta")}</button>
           </div>
         ) : (
           <>
@@ -1616,7 +1640,7 @@ function CatalogueSheet({ title, note, banner, chips, cat, onCat, photos, featur
                               aria-pressed={!!saved[p.id]} aria-label={`Save ${p.name}`}>
                         <HeartIcon filled={!!saved[p.id]} />
                       </button>
-                      {p.img && <img src={IMG[p.img]} alt={p.name} />}
+                      {p.img && <EditableImg name={p.img} alt={p.name} />}
                     </div>
                     <div className="pmeta">
                       <div className="prow">
@@ -1629,7 +1653,7 @@ function CatalogueSheet({ title, note, banner, chips, cat, onCat, photos, featur
                         </div>
                         <span className="loves">♡ {p.loves}</span>
                       </div>
-                      <button className="addbtn" onClick={() => onAdd(p.name, p.price)}>{COPY.addToBag}</button>
+                      <button className="addbtn" onClick={() => onAdd(p.name, p.price)}>{ed("addToBag")}</button>
                     </div>
                   </article>
                 ))}
@@ -1645,7 +1669,7 @@ function CatalogueSheet({ title, note, banner, chips, cat, onCat, photos, featur
 function SetsSheet({ onClose, onAdd }) {
   /* Same clamp as SetCard uses, so the header and the cards can never quote
      different discounts — the whole point of taking the literal out. */
-  const pctRaw = Number(COPY.setDiscountPercent);
+  const pctRaw = Number(cv("setDiscountPercent"));
   const pctLabel = Number.isFinite(pctRaw) ? Math.min(90, Math.max(0, pctRaw)) : 0;
   useEffect(() => {
     const esc = (e) => e.key === "Escape" && onClose();
@@ -1714,7 +1738,7 @@ function Signature({ onAdd, saved, onSave }) {
              aria-label="Open the photo larger"
              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setBox(v)}>
           {SIG_VIEWS.map((s, n) => (
-            <img key={s.key} src={IMG[s.key]} alt={`Cloud hoodie, ${s.label.toLowerCase()}`}
+            <EditableImg key={s.key} name={s.key} alt={`Cloud hoodie, ${s.label.toLowerCase()}`}
                  className={n === v ? "on" : ""} />
           ))}
           <button className="heart" onClick={(e) => { e.stopPropagation(); onSave("sig", "The ooch cloud hoodie"); }}
@@ -1728,7 +1752,7 @@ function Signature({ onAdd, saved, onSave }) {
           {SIG_VIEWS.map((s, n) => (
             <button key={s.key} className="thumb" aria-pressed={n === v}
                     aria-label={s.label} onClick={() => setV(n)}>
-              <img src={IMG[s.key]} alt="" />
+              <EditableImg name={s.key} alt="" />
             </button>
           ))}
         </div>
@@ -1747,14 +1771,14 @@ function Signature({ onAdd, saved, onSave }) {
             and the price added to the bag read the SAME value: a shop that shows
             one number and charges another is the worst version of this bug. */}
         <div className="sigbuy">
-          <span className="price" style={{ fontSize: 24 }}>${COPY.sigHoodiePrice}</span>
+          <span className="price" style={{ fontSize: 24 }}>${ed("sigHoodiePrice")}</span>
           <button className="btn btn-solid"
                   onClick={() => onAdd(`${COPY.sigHoodieName} · Sky blue · ${size}`, Number(COPY.sigHoodiePrice) || 0)}>
-            {COPY.addToBag}
+            {ed("addToBag")}
           </button>
           <button className="btn btn-soft"
                   onClick={() => onAdd(`${COPY.sigPantName} · Sky blue · ${size}`, Number(COPY.sigPantPrice) || 0)}>
-            {COPY.sigPantCta}
+            {ed("sigPantCta")}
           </button>
         </div>
       </div>
@@ -1780,7 +1804,7 @@ function Signature({ onAdd, saved, onSave }) {
           {MODELS.map((m, n) => (
             <button key={m.key} onClick={() => setBox(SIG_VIEWS.length + n)}
                     aria-label={`Open photo: ${m.cap}`}>
-              <img src={IMG[m.key]} alt={`Cloud hoodie worn, ${m.cap.toLowerCase()}`} />
+              <EditableImg name={m.key} alt={`Cloud hoodie worn, ${m.cap.toLowerCase()}`} />
               <span className="mcap">{m.cap}</span>
               <span className="zoom" aria-hidden="true">⤢</span>
             </button>
@@ -1885,6 +1909,174 @@ let COPY = {
   sigPantPrice: 99,
   sigPantCta: "Add the matching pant",
 };
+
+
+/* ══════════════════════════════════════════════════════════════════════════
+   EDIT MODE — 2026-08-10. "Can the admin look like the actual website and we
+   just edit the page directly?"
+   ------------------------------------------------------------------------
+   It is the SAME page, not a mirror. ooch.shop/?edit=1 renders the real site
+   with a pencil beside each editable thing. A mirror would match on the day it
+   was built and drift the first time a category was added — two sites to keep
+   in step and a bug class that only shows up as "the admin doesn't look like
+   the site any more". Edit mode cannot drift, because it IS the site.
+
+   Values are read through cv()/civ() so a pending edit shows immediately
+   without touching COPY itself. Nothing is saved until Save is pressed, and
+   Discard throws the draft away — the page you are looking at is only yours
+   until then.
+   ══════════════════════════════════════════════════════════════════════════ */
+let EDIT = false;
+try {
+  const q = new URLSearchParams(window.location.search);
+  if (q.has("edit")) window.sessionStorage.setItem("ooch.edit", q.get("edit") === "0" ? "0" : "1");
+  EDIT = window.sessionStorage.getItem("ooch.edit") === "1";
+} catch (e) { EDIT = false; }
+
+const DRAFT = {};        /* COPY key   -> pending value */
+const IMGDRAFT = {};     /* image name -> pending path  */
+let _bump = () => {};
+const draftCount = () => Object.keys(DRAFT).length + Object.keys(IMGDRAFT).length;
+
+/* current value of a COPY key / an image path, draft first */
+const cv = (k) => (k in DRAFT ? DRAFT[k] : COPY[k]);
+const civ = (name) => (name in IMGDRAFT ? IMGDRAFT[name] : IMG[name]);
+
+function EditableValue({ k }) {
+  const [editing, setEditing] = React.useState(false);
+  const raw = cv(k);
+  const numeric = typeof COPY[k] === "number";
+  if (!editing) {
+    return (
+      <span className="ooch-ed" onClick={(e) => { e.stopPropagation(); e.preventDefault(); setEditing(true); }}
+            title="Click to edit">
+        {String(raw)}<span className="ooch-pen" aria-hidden="true">✎</span>
+      </span>
+    );
+  }
+  const commit = (val) => {
+    const v = numeric ? (Number(val) === Number(COPY[k]) ? COPY[k] : Number(val) || 0) : val;
+    if (v === COPY[k]) delete DRAFT[k]; else DRAFT[k] = v;
+    setEditing(false); _bump();
+  };
+  return (
+    <input className="ooch-edin" autoFocus defaultValue={raw} type={numeric ? "number" : "text"}
+           onClick={(e) => e.stopPropagation()}
+           onBlur={(e) => commit(e.target.value)}
+           onKeyDown={(e) => {
+             if (e.key === "Enter") { e.preventDefault(); commit(e.currentTarget.value); }
+             if (e.key === "Escape") { setEditing(false); }
+           }} />
+  );
+}
+/* Used at every render site: plain value normally, editable in edit mode. */
+const ed = (k) => (EDIT ? <EditableValue k={k} /> : cv(k));
+
+/* Pictures. Changing one changes it everywhere that NAME is used, which is the
+   same semantic the form console has — a picture is swapped in one place. */
+function PictureEditor({ name, onClose }) {
+  const [q, setQ] = React.useState("");
+  const [ups, setUps] = React.useState([]);
+  React.useEffect(() => {
+    fetch("/api/uploads", { cache: "no-store" }).then((r) => r.json())
+      .then((d) => setUps((d && d.files) || [])).catch(() => {});
+  }, []);
+  const names = Object.keys(IMG).filter((n) => !q || n.indexOf(q.toLowerCase()) > -1).slice(0, 120);
+  const up = (e) => {
+    const f = e.target.files && e.target.files[0]; if (!f) return;
+    fetch("/api/upload", { method: "POST", body: f }).then((r) => r.json()).then((j) => {
+      if (j && j.url) { IMGDRAFT[name] = j.url; _bump(); onClose(); }
+    }).catch(() => {});
+  };
+  return (
+    <div className="ooch-modal" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()}>
+        <h3 style={{ marginBottom: 8 }}>Change this picture</h3>
+        <p className="ooch-hint">Upload a new photo, or pick one already on the site.
+          This changes <b>{name}</b> everywhere it appears.</p>
+        <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" onChange={up} />
+        {ups.length > 0 && <>
+          <p className="ooch-hint" style={{ marginTop: 10 }}>Recently uploaded</p>
+          <div className="ooch-grid">
+            {ups.slice(0, 24).map((u) => (
+              <figure key={u} onClick={() => { IMGDRAFT[name] = u; _bump(); onClose(); }}>
+                <img src={u} alt="" loading="lazy" /></figure>))}
+          </div></>}
+        <input placeholder="Filter the site's pictures…" style={{ marginTop: 10 }}
+               value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="ooch-grid">
+          {names.map((n) => (
+            <figure key={n} onClick={() => { IMGDRAFT[name] = civ(n); _bump(); onClose(); }}>
+              <img src={civ(n)} alt="" loading="lazy" /><figcaption>{n}</figcaption></figure>))}
+        </div>
+      </div>
+    </div>
+  );
+}
+/* Renders EXACTLY the same <img> the site would render — no wrapper element, so
+   edit mode cannot shift a single pixel of the girls' layout. In edit mode the
+   image itself becomes the click target and the modal rides alongside in a
+   fragment, which contributes no box of its own. */
+function EditableImg({ name, alt, className, style }) {
+  const [open, setOpen] = React.useState(false);
+  const src = civ(name);
+  if (!EDIT) return <img src={src} alt={alt} className={className} style={style} loading="lazy" />;
+  return (
+    <>
+      <img src={src} alt={alt} loading="lazy" style={style}
+           className={(className || "") + " ooch-edimg"}
+           title="Click to change this picture"
+           onClick={(e) => { e.stopPropagation(); e.preventDefault(); setOpen(true); }} />
+      {open && <PictureEditor name={name} onClose={() => setOpen(false)} />}
+    </>
+  );
+}
+
+function EditBar() {
+  const [, setN] = React.useState(0);
+  const [busy, setBusy] = React.useState(false);
+  const [msg, setMsg] = React.useState("");
+  React.useEffect(() => { _bump = () => setN((x) => x + 1); return () => { _bump = () => {}; }; }, []);
+  const n = draftCount();
+  const save = () => {
+    setBusy(true); setMsg("Saving…");
+    fetch("/api/content", { cache: "no-store" }).then((r) => r.json()).then((cur) => {
+      const content = Object.assign({}, (cur && cur.content) || {});
+      if (Object.keys(DRAFT).length) content.COPY = Object.assign({}, content.COPY || {}, DRAFT);
+      if (Object.keys(IMGDRAFT).length) content.IMG = Object.assign({}, IMG, content.IMG || {}, IMGDRAFT);
+      return fetch("/api/content", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, baseTs: (cur && cur.ts) || 0 }),
+      });
+    }).then((r) => r.json().then((j) => ({ ok: r.ok, j })))
+      .then(({ ok, j }) => {
+        setBusy(false);
+        if (!ok) { setMsg((j && j.detail) || "Save failed."); return; }
+        setMsg("Saved — reloading…");
+        setTimeout(() => window.location.reload(), 600);
+      }).catch(() => { setBusy(false); setMsg("Save failed — no connection."); });
+  };
+  const discard = () => {
+    if (n && !window.confirm("Throw away " + n + " unsaved change" + (n > 1 ? "s" : "") + "?")) return;
+    Object.keys(DRAFT).forEach((k) => delete DRAFT[k]);
+    Object.keys(IMGDRAFT).forEach((k) => delete IMGDRAFT[k]);
+    setMsg(""); _bump();
+  };
+  return (
+    <div className="ooch-editbar">
+      <b>Editing the page</b>
+      <span className="ooch-hint">{n ? n + " unsaved change" + (n > 1 ? "s" : "") : "Click any ✎ to change it"}</span>
+      <span style={{ marginLeft: "auto" }} />
+      {msg && <span className="ooch-hint">{msg}</span>}
+      <button className="ooch-btn ghost" onClick={discard} disabled={!n || busy}>Discard</button>
+      <button className="ooch-btn" onClick={save} disabled={!n || busy}>Save</button>
+      <button className="ooch-btn ghost" onClick={() => {
+        try { window.sessionStorage.setItem("ooch.edit", "0"); } catch (e) {}
+        window.location.href = window.location.pathname;
+      }}>Done</button>
+    </div>
+  );
+}
 
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
@@ -2008,8 +2200,9 @@ export default function Ooch() {
   const result = RESULTS[`${answers.priority}-${answers.season}`];
 
   return (
-    <div className="ooch">
+    <div className={"ooch" + (EDIT ? " ooch-editing" : "")}>
       <style>{CSS}</style>
+      {EDIT && <EditBar />}
 
       <div className="strip">
         <div className="strip-inner" aria-hidden="true">
@@ -2069,12 +2262,12 @@ export default function Ooch() {
         <div className="blob b1" aria-hidden="true" />
         <div className="blob b2" aria-hidden="true" />
         <div className="hero-in">
-          <p className="findyour rise">{COPY.heroFindYour}</p>
-          <span className="oochword script rise d1">{COPY.heroWord}</span>
-          <p className="herosub">{COPY.heroSub}</p>
+          <p className="findyour rise">{ed("heroFindYour")}</p>
+          <span className="oochword script rise d1">{ed("heroWord")}</span>
+          <p className="herosub">{ed("heroSub")}</p>
           <div className="herobtns">
-            <button className="btn btn-solid" onClick={() => setSets(true)}>{COPY.heroCtaSets}</button>
-            <button className="btn btn-clear" onClick={startQuiz}>{COPY.heroCtaQuiz}</button>
+            <button className="btn btn-solid" onClick={() => setSets(true)}>{ed("heroCtaSets")}</button>
+            <button className="btn btn-clear" onClick={startQuiz}>{ed("heroCtaQuiz")}</button>
           </div>
         </div>
         <svg className="wave" viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden="true">
@@ -2136,7 +2329,7 @@ export default function Ooch() {
                 return (
                   <article className="card" key={it.name}>
                     <div className="art" style={{ background: it.img ? "#F2F1EF" : BG[i % BG.length] }}>
-                      {it.img ? <img src={IMG[it.img]} alt={it.name} />
+                      {it.img ? <EditableImg name={it.img} alt={it.name} />
                               : Art ? <Art a={i % 2 ? "#BFE1F6" : "#FFFFFF"} b="#2C6E9B" /> : null}
                     </div>
                     <div className="pmeta">
@@ -2144,7 +2337,7 @@ export default function Ooch() {
                         <span className="pname">{it.name}</span>
                         <span className="price">${it.price}</span>
                       </div>
-                      <button className="addbtn" onClick={() => addToBag(it.name, it.price)}>{COPY.addToBag}</button>
+                      <button className="addbtn" onClick={() => addToBag(it.name, it.price)}>{ed("addToBag")}</button>
                     </div>
                   </article>
                 );
@@ -2165,20 +2358,20 @@ export default function Ooch() {
         <div className="looks">
           <div className="look one">
             <span className="script" aria-hidden="true">ooch</span>
-            <h3>{COPY.dropTitle}</h3>
+            <h3>{ed("dropTitle")}</h3>
             <p style={{ margin: 0, fontWeight: 600, maxWidth: "30ch" }}>
-              {COPY.dropBody}
+              {ed("dropBody")}
             </p>
             <button className="btn btn-soft" style={{ alignSelf: "flex-start", marginTop: 6 }}
-                    onClick={() => setSets(true)}>{COPY.dropCta}</button>
+                    onClick={() => setSets(true)}>{ed("dropCta")}</button>
           </div>
           <div className="look two">
-            <h3>{COPY.styledTitle}</h3>
+            <h3>{ed("styledTitle")}</h3>
             <p style={{ margin: 0, fontWeight: 600, maxWidth: "26ch" }}>
-              {COPY.styledBody}
+              {ed("styledBody")}
             </p>
             <button className="btn btn-solid" style={{ alignSelf: "flex-start", marginTop: 6 }}
-                    onClick={() => ping("Instagram feed — connect @ooch in the build")}>{COPY.styledCta}</button>
+                    onClick={() => ping("Instagram feed — connect @ooch in the build")}>{ed("styledCta")}</button>
           </div>
         </div>
       </section>
@@ -2186,26 +2379,26 @@ export default function Ooch() {
       <section className="sect">
         <div className="shead">
           <div>
-            <h2>{COPY.reviewsTitle}</h2>
-            <p>{COPY.reviewsSub}</p>
+            <h2>{ed("reviewsTitle")}</h2>
+            <p>{ed("reviewsSub")}</p>
           </div>
-          <button className="link" onClick={() => ping("All 2,913 reviews — coming in the build")}>{COPY.reviewsLink}</button>
+          <button className="link" onClick={() => ping("All 2,913 reviews — coming in the build")}>{ed("reviewsLink")}</button>
         </div>
         <div className="revs">
           <div className="rev">
             <span className="stars" aria-label="5 out of 5">★★★★★</span>
-            <p>{COPY.review1}</p>
-            <div className="who">{COPY.review1who}</div>
+            <p>{ed("review1")}</p>
+            <div className="who">{ed("review1who")}</div>
           </div>
           <div className="rev">
             <span className="stars" aria-label="5 out of 5">★★★★★</span>
-            <p>{COPY.review2}</p>
-            <div className="who">{COPY.review2who}</div>
+            <p>{ed("review2")}</p>
+            <div className="who">{ed("review2who")}</div>
           </div>
           <div className="rev">
             <span className="stars" aria-label="4 out of 5">★★★★☆</span>
-            <p>{COPY.review3}</p>
-            <div className="who">{COPY.review3who}</div>
+            <p>{ed("review3")}</p>
+            <div className="who">{ed("review3who")}</div>
           </div>
         </div>
       </section>
@@ -2314,7 +2507,7 @@ export default function Ooch() {
       )}
 
       {bagOpen && (
-        <Drawer title={COPY.bagTitle} note={bagCount === 1 ? "1 piece" : `${bagCount} pieces`}
+        <Drawer title={ed("bagTitle")} note={bagCount === 1 ? "1 piece" : `${bagCount} pieces`}
                 onClose={() => setBagOpen(false)}>
           {bag.length === 0 ? (
             <div className="drawerempty">
@@ -2355,7 +2548,7 @@ export default function Ooch() {
       )}
 
       {savedOpen && (
-        <Drawer title={COPY.savedTitle} note={savedCount === 1 ? "1 piece" : `${savedCount} pieces`}
+        <Drawer title={ed("savedTitle")} note={savedCount === 1 ? "1 piece" : `${savedCount} pieces`}
                 onClose={() => setSavedOpen(false)}>
           {savedCount === 0 ? (
             <div className="drawerempty">
