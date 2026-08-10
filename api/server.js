@@ -41,7 +41,7 @@ const REV_DIR = '/srv/ooch/data/revisions';
 const CONTENT_KEYS = [
   'IMG', 'COLOURS', 'SIZES', 'PHOTO_PRODUCTS', 'PRODUCTS', 'DRESSES', 'DRESS_COLOURS',
   'DENIM_COLOURS', 'SHORTS', 'LAYERS', 'BIKINI_FEATURE', 'SETS', 'CATEGORIES', 'TICKER',
-  'QUESTIONS', 'RESULTS', 'SIZE_CHART', 'SIG_VIEWS', 'MODELS', 'BG',
+  'QUESTIONS', 'RESULTS', 'SIZE_CHART', 'SIG_VIEWS', 'MODELS', 'BG', 'COPY',
 ];
 const MAX_BYTES = 12 * 1024 * 1024;       // 12 MB — a phone photo, comfortably
 

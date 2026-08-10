@@ -1321,7 +1321,7 @@ function Dress({ dress, saved, onSave, onAdd }) {
 
       <div className="dbuy">
         <span className="price" style={{ fontSize: 24 }}>${dress.price}</span>
-        <button className="btn btn-solid" onClick={() => onAdd(`${dress.name} · ${size}`, dress.price)}>Add to bag</button>
+        <button className="btn btn-solid" onClick={() => onAdd(`${dress.name} · ${size}`, dress.price)}>{COPY.addToBag}</button>
       </div>
 
       <div className="dcolours">
@@ -1389,7 +1389,7 @@ function SetCard({ set, onAdd }) {
   const chosen = set.choice && extra !== null ? set.choice.options[extra] : null;
   const items = chosen ? [...set.items, chosen] : set.items;
   const full = items.reduce((t, it) => t + it.price, 0);
-  const now = Math.round(full * 0.9);
+  const now = Math.round(full * (1 - (COPY.setDiscountPercent || 0) / 100));
 
   return (
     <div className="setcard">
@@ -1515,7 +1515,7 @@ function SizeGuide() {
         </table>
       </div>
 
-      <p className="sgtip">Between two sizes? Take the bigger one — everything shrinks about 2% on the first wash, and returns are free for 30 days.</p>
+      <p className="sgtip">{COPY.sizeTip}</p>
     </div>
   );
 }
@@ -1563,9 +1563,9 @@ function CatalogueSheet({ title, note, banner, chips, cat, onCat, photos, featur
       <div className="cataloguewrap">
         {banner && (
           <div className="limitedhead">
-            <span className="limitedtag">Limited pieces</span>
-            <h2>Made once</h2>
-            <p>Small runs in one colourway. When they sell out they don't come back.</p>
+            <span className="limitedtag">{COPY.limitedTag}</span>
+            <h2>{COPY.limitedTitle}</h2>
+            <p>{COPY.limitedBody}</p>
           </div>
         )}
 
@@ -1581,9 +1581,9 @@ function CatalogueSheet({ title, note, banner, chips, cat, onCat, photos, featur
 
         {empty ? (
           <div className="emptycat">
-            <h3>Nothing here yet</h3>
-            <p>These land in a future drop. Sign up and you'll hear first.</p>
-            <button className="btn btn-solid" onClick={onClose}>Back to the site</button>
+            <h3>{COPY.emptyTitle}</h3>
+            <p>{COPY.emptyBody}</p>
+            <button className="btn btn-solid" onClick={onClose}>{COPY.emptyCta}</button>
           </div>
         ) : (
           <>
@@ -1622,7 +1622,7 @@ function CatalogueSheet({ title, note, banner, chips, cat, onCat, photos, featur
                         </div>
                         <span className="loves">♡ {p.loves}</span>
                       </div>
-                      <button className="addbtn" onClick={() => onAdd(p.name, p.price)}>Add to bag</button>
+                      <button className="addbtn" onClick={() => onAdd(p.name, p.price)}>{COPY.addToBag}</button>
                     </div>
                   </article>
                 ))}
@@ -1729,15 +1729,21 @@ function Signature({ onAdd, saved, onSave }) {
           ))}
         </div>
 
+        {/* ★ These prices used to be the literals 115 and 99, written three times
+            between the label and the two buttons — independent of the same two
+            products in the catalogue, so changing a price there left this block
+            quietly disagreeing. They now come from COPY, and the displayed price
+            and the price added to the bag read the SAME value: a shop that shows
+            one number and charges another is the worst version of this bug. */}
         <div className="sigbuy">
-          <span className="price" style={{ fontSize: 24 }}>$115</span>
+          <span className="price" style={{ fontSize: 24 }}>${COPY.sigHoodiePrice}</span>
           <button className="btn btn-solid"
-                  onClick={() => onAdd(`The ooch cloud hoodie · Sky blue · ${size}`, 115)}>
-            Add to bag
+                  onClick={() => onAdd(`${COPY.sigHoodieName} · Sky blue · ${size}`, COPY.sigHoodiePrice)}>
+            {COPY.addToBag}
           </button>
           <button className="btn btn-soft"
-                  onClick={() => onAdd(`Matching track pant · Sky blue · ${size}`, 99)}>
-            Add the matching pant
+                  onClick={() => onAdd(`${COPY.sigPantName} · Sky blue · ${size}`, COPY.sigPantPrice)}>
+            {COPY.sigPantCta}
           </button>
         </div>
       </div>
@@ -1808,12 +1814,73 @@ function Signature({ onAdd, saved, onSave }) {
    any product marked coloursFollowPalette re-points at the new blues,
    otherwise editing the palette would leave that product on a stale copy.
    ================================================================== */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   COPY — 2026-08-10. Every user-visible string that was written straight into
+   the markup, pulled out so the console can edit it. An audit counted roughly
+   ninety of them, including PRICES: the signature hoodie block carried its own
+   $115 and $99 literals, independent of the same products in the catalogue,
+   and the set discount was a bare 0.9 in an expression. A price that exists in
+   two places is a price that will eventually disagree with itself.
+   Anything here is editable at /admin under "Words & prices".
+   ══════════════════════════════════════════════════════════════════════════ */
+let COPY = {
+  heroFindYour: "Find your",
+  heroWord: "ooch",
+  heroSub: "Unique drops every month.",
+  heroCtaSets: "Save with sets",
+  heroCtaQuiz: "Take the style quiz",
+
+  dropTitle: "This month's drop",
+  dropBody: "Six pieces that go with each other and nothing else you own. Here until the end of the month.",
+  dropCta: "Shop the look",
+  styledTitle: "Styled by you",
+  styledBody: "Tag @ooch and your fit could land on the homepage. 1,240 posted this month.",
+  styledCta: "See the feed",
+
+  reviewsTitle: "What people say",
+  reviewsSub: "4.8 out of 5, from 2,913 reviews",
+  reviewsLink: "Read all",
+  review1: "The zip-thru is so soft I've worn it four days running. Sizing was spot on with the quiz.",
+  review1who: "Léa · Lyon · verified buyer",
+  review2: "Ordered Tuesday, wore it Thursday. The blue is exactly the blue on the website.",
+  review2who: "Maya · Manchester · verified buyer",
+  review3: "Bought the tee in cornflower then went back for navy. Sized up and glad I did.",
+  review3who: "Anouk · Amsterdam · verified buyer",
+
+  limitedTag: "Limited pieces",
+  limitedTitle: "Made once",
+  limitedBody: "Small runs in one colourway. When they sell out they don't come back.",
+  emptyTitle: "Nothing here yet",
+  emptyBody: "These land in a future drop. Sign up and you'll hear first.",
+  emptyCta: "Back to the site",
+
+  sizeTip: "Between two sizes? Take the bigger one — everything shrinks about 2% on the first wash, and returns are free for 30 days.",
+  addToBag: "Add to bag",
+  bagTitle: "Your bag",
+  savedTitle: "Saved",
+
+  /* Numbers that were literals in expressions. The discount is a PERCENTAGE
+     off, so 10 means 10% — a bare 0.9 in the code was easy to misread as
+     "90% off" by anyone editing it. */
+  setDiscountPercent: 10,
+
+  /* The signature hoodie block prices the hoodie and its matching pant itself.
+     Keep these in step with the same products in Staples, or the shop will show
+     two different prices for one garment. */
+  sigHoodieName: "The ooch cloud hoodie",
+  sigHoodiePrice: 115,
+  sigPantName: "Matching track pant",
+  sigPantPrice: 99,
+  sigPantCta: "Add the matching pant",
+};
+
 const clone = (v) => JSON.parse(JSON.stringify(v));
 
 export const DEFAULT_CONTENT = clone({
   IMG, COLOURS, SIZES, PHOTO_PRODUCTS, PRODUCTS, DRESSES, DRESS_COLOURS,
   DENIM_COLOURS, SHORTS, LAYERS, BIKINI_FEATURE, SETS, CATEGORIES, TICKER,
-  QUESTIONS, RESULTS, SIZE_CHART, SIG_VIEWS, MODELS, BG,
+  QUESTIONS, RESULTS, SIZE_CHART, SIG_VIEWS, MODELS, BG, COPY,
 });
 
 /* The order matters: assign the raw structures first, then rebuild everything
@@ -1842,6 +1909,11 @@ export function applyContent(doc) {
   set("SIG_VIEWS", (v) => { SIG_VIEWS = v; });
   set("MODELS", (v) => { MODELS = v; });
   set("BG", (v) => { BG = v; });
+  /* COPY is MERGED, not replaced: a saved document written before a new string
+     was added would otherwise wipe that string and render `undefined` on the
+     page. Merging means an older save simply lacks the new key and the built-in
+     default stands. */
+  if (doc.COPY && typeof doc.COPY === "object") COPY = Object.assign({}, COPY, doc.COPY);
 
   /* ---- derived, always rebuilt ---- */
   FIVE_BLUES = (COLOURS || []).map((c) => ({ name: c.name, hex: c.hex }));
@@ -1986,12 +2058,12 @@ export default function Ooch() {
         <div className="blob b1" aria-hidden="true" />
         <div className="blob b2" aria-hidden="true" />
         <div className="hero-in">
-          <p className="findyour rise">Find your</p>
-          <span className="oochword script rise d1">ooch</span>
-          <p className="herosub">Unique drops every month.</p>
+          <p className="findyour rise">{COPY.heroFindYour}</p>
+          <span className="oochword script rise d1">{COPY.heroWord}</span>
+          <p className="herosub">{COPY.heroSub}</p>
           <div className="herobtns">
-            <button className="btn btn-solid" onClick={() => setSets(true)}>Save with sets</button>
-            <button className="btn btn-clear" onClick={startQuiz}>Take the style quiz</button>
+            <button className="btn btn-solid" onClick={() => setSets(true)}>{COPY.heroCtaSets}</button>
+            <button className="btn btn-clear" onClick={startQuiz}>{COPY.heroCtaQuiz}</button>
           </div>
         </div>
         <svg className="wave" viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden="true">
@@ -2061,7 +2133,7 @@ export default function Ooch() {
                         <span className="pname">{it.name}</span>
                         <span className="price">${it.price}</span>
                       </div>
-                      <button className="addbtn" onClick={() => addToBag(it.name, it.price)}>Add to bag</button>
+                      <button className="addbtn" onClick={() => addToBag(it.name, it.price)}>{COPY.addToBag}</button>
                     </div>
                   </article>
                 );
@@ -2082,20 +2154,20 @@ export default function Ooch() {
         <div className="looks">
           <div className="look one">
             <span className="script" aria-hidden="true">ooch</span>
-            <h3>This month's drop</h3>
+            <h3>{COPY.dropTitle}</h3>
             <p style={{ margin: 0, fontWeight: 600, maxWidth: "30ch" }}>
-              Six pieces that go with each other and nothing else you own. Here until the end of the month.
+              {COPY.dropBody}
             </p>
             <button className="btn btn-soft" style={{ alignSelf: "flex-start", marginTop: 6 }}
-                    onClick={() => setSets(true)}>Shop the look</button>
+                    onClick={() => setSets(true)}>{COPY.dropCta}</button>
           </div>
           <div className="look two">
-            <h3>Styled by you</h3>
+            <h3>{COPY.styledTitle}</h3>
             <p style={{ margin: 0, fontWeight: 600, maxWidth: "26ch" }}>
-              Tag @ooch and your fit could land on the homepage. 1,240 posted this month.
+              {COPY.styledBody}
             </p>
             <button className="btn btn-solid" style={{ alignSelf: "flex-start", marginTop: 6 }}
-                    onClick={() => ping("Instagram feed — connect @ooch in the build")}>See the feed</button>
+                    onClick={() => ping("Instagram feed — connect @ooch in the build")}>{COPY.styledCta}</button>
           </div>
         </div>
       </section>
@@ -2103,26 +2175,26 @@ export default function Ooch() {
       <section className="sect">
         <div className="shead">
           <div>
-            <h2>What people say</h2>
-            <p>4.8 out of 5, from 2,913 reviews</p>
+            <h2>{COPY.reviewsTitle}</h2>
+            <p>{COPY.reviewsSub}</p>
           </div>
-          <button className="link" onClick={() => ping("All 2,913 reviews — coming in the build")}>Read all</button>
+          <button className="link" onClick={() => ping("All 2,913 reviews — coming in the build")}>{COPY.reviewsLink}</button>
         </div>
         <div className="revs">
           <div className="rev">
             <span className="stars" aria-label="5 out of 5">★★★★★</span>
-            <p>The zip-thru is so soft I've worn it four days running. Sizing was spot on with the quiz.</p>
-            <div className="who">Léa · Lyon · verified buyer</div>
+            <p>{COPY.review1}</p>
+            <div className="who">{COPY.review1who}</div>
           </div>
           <div className="rev">
             <span className="stars" aria-label="5 out of 5">★★★★★</span>
-            <p>Ordered Tuesday, wore it Thursday. The blue is exactly the blue on the website.</p>
-            <div className="who">Maya · Manchester · verified buyer</div>
+            <p>{COPY.review2}</p>
+            <div className="who">{COPY.review2who}</div>
           </div>
           <div className="rev">
             <span className="stars" aria-label="4 out of 5">★★★★☆</span>
-            <p>Bought the tee in cornflower then went back for navy. Sized up and glad I did.</p>
-            <div className="who">Anouk · Amsterdam · verified buyer</div>
+            <p>{COPY.review3}</p>
+            <div className="who">{COPY.review3who}</div>
           </div>
         </div>
       </section>
@@ -2231,7 +2303,7 @@ export default function Ooch() {
       )}
 
       {bagOpen && (
-        <Drawer title="Your bag" note={bagCount === 1 ? "1 piece" : `${bagCount} pieces`}
+        <Drawer title={COPY.bagTitle} note={bagCount === 1 ? "1 piece" : `${bagCount} pieces`}
                 onClose={() => setBagOpen(false)}>
           {bag.length === 0 ? (
             <div className="drawerempty">
@@ -2272,7 +2344,7 @@ export default function Ooch() {
       )}
 
       {savedOpen && (
-        <Drawer title="Saved" note={savedCount === 1 ? "1 piece" : `${savedCount} pieces`}
+        <Drawer title={COPY.savedTitle} note={savedCount === 1 ? "1 piece" : `${savedCount} pieces`}
                 onClose={() => setSavedOpen(false)}>
           {savedCount === 0 ? (
             <div className="drawerempty">
