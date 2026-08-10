@@ -9,3 +9,8 @@ caddy_config/
 # so a clone never carries someone's camera roll and a deploy never overwrites it.
 data/
 uploads/
+
+# Build inputs and intermediates — dist/ IS committed because nginx serves it directly.
+v2/node_modules/
+v2/dist-new/
+v2/dist-old/

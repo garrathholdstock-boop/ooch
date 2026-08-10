@@ -227,8 +227,17 @@ const CSS = `
 }
 
 .ooch *{box-sizing:border-box;}
+/* overflow-x is CLIP, not hidden — 2026-08-10. Setting it to hidden makes this
+   element a scroll container, and position:sticky then sticks relative to IT
+   rather than to the viewport. Because .ooch wraps the whole page and scrolls
+   with the document, the sticky .nav scrolled away with it and the header
+   vanished — even though the .nav rule was correct all along. clip still clips
+   horizontal overflow but does NOT create a scroll container, so sticky works.
+   Do not change it back to hidden.
+   NOTE: this whole CSS block lives inside a JS template literal, so never put a
+   backtick in a comment here — it ends the string and the build fails. */
 .ooch{background:var(--wash);color:var(--ink);font-family:'Nunito',system-ui,sans-serif;font-size:16px;
-  overflow-x:hidden;-webkit-font-smoothing:antialiased;}
+  overflow-x:clip;-webkit-font-smoothing:antialiased;}
 .ooch button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit;}
 .ooch :focus-visible{outline:3px solid var(--deep);outline-offset:3px;border-radius:6px;}
 .ooch h1,.ooch h2,.ooch h3{font-family:'Baloo 2',cursive;font-weight:800;line-height:1.05;margin:0;letter-spacing:-.01em;}
