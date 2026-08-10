@@ -1243,10 +1243,10 @@ function Showcase({ product, saved, onSave, onAdd }) {
 
       <div className="sinfo">
         <div className="stitle">
-          <h3>{product.name}</h3>
-          <span className="price">${product.price}</span>
+          <h3>{edp(product,"name")}</h3>
+          <span className="price">${edp(product,"price")}</span>
         </div>
-        <p style={{ margin: 0, fontWeight: 600, lineHeight: 1.45, fontSize: 15 }}>{product.blurb}</p>
+        <p style={{ margin: 0, fontWeight: 600, lineHeight: 1.45, fontSize: 15 }}>{edp(product,"blurb")}</p>
 
         {product.styles && (
           <div className="stylechips" role="group" aria-label="Choose a shape">
@@ -1305,8 +1305,8 @@ function Dress({ dress, saved, onSave, onAdd }) {
   return (
     <div className="dress">
       <div className="dhead">
-        <span className="dname">{dress.name}</span>
-        {dress.tagline && <p className="dtag">{dress.tagline}</p>}
+        <span className="dname">{edp(dress,"name")}</span>
+        {dress.tagline && <p className="dtag">{edp(dress,"tagline")}</p>}
       </div>
 
       <div className="dmain">
@@ -1335,7 +1335,7 @@ function Dress({ dress, saved, onSave, onAdd }) {
         <p className="viewname">{dress.views[v].label}</p>
       </div>
 
-      <p className="dblurb">{dress.blurb}</p>
+      <p className="dblurb">{edp(dress,"blurb")}</p>
 
       <div className="dsizes" role="group" aria-label="Choose a size">
         {(dress.sizeList || SIZES).map((s) => (
@@ -1344,7 +1344,7 @@ function Dress({ dress, saved, onSave, onAdd }) {
       </div>
 
       <div className="dbuy">
-        <span className="price" style={{ fontSize: 24 }}>${dress.price}</span>
+        <span className="price" style={{ fontSize: 24 }}>${edp(dress,"price")}</span>
         <button className="btn btn-solid" onClick={() => onAdd(`${dress.name} · ${size}`, dress.price)}>{ed("addToBag")}</button>
       </div>
 
@@ -1434,8 +1434,8 @@ function SetCard({ set, onAdd }) {
         ))}
       </div>
       <div className="setinfo">
-        <h3>{set.name}</h3>
-        <p style={{ margin: 0, fontWeight: 600, lineHeight: 1.45, fontSize: 15 }}>{set.blurb}</p>
+        <h3>{edp(set,"name")}</h3>
+        <p style={{ margin: 0, fontWeight: 600, lineHeight: 1.45, fontSize: 15 }}>{edp(set,"blurb")}</p>
 
         {set.fixed ? (
           <p className="cname" style={{ margin: 0 }}>{set.colourNote}</p>
@@ -1644,8 +1644,8 @@ function CatalogueSheet({ title, note, banner, chips, cat, onCat, photos, featur
                     </div>
                     <div className="pmeta">
                       <div className="prow">
-                        <span className="pname">{p.name}</span>
-                        <span className="price">${p.price}</span>
+                        <span className="pname">{edp(p,"name")}</span>
+                        <span className="price">${edp(p,"price")}</span>
                       </div>
                       <div className="prow">
                         <div className="swatches">
@@ -2032,6 +2032,83 @@ function EditableImg({ name, alt, className, style }) {
   );
 }
 
+
+/* ── product fields (pass 2, 2026-08-10) ──────────────────────────────────
+   Items are addressed by ID, never by array index. An index-keyed draft would
+   silently edit the WRONG product the moment anyone reorders the list — the
+   kind of bug that shows up a week later as "why did the hoodie's blurb end up
+   on the skort". Every editable collection is stamped once at boot with the
+   section it came from, so a render site can say edp(item, "price") without
+   the section having to be threaded down through 46 .map() calls.
+   __sec is stripped on save; it must never reach the stored document. */
+const EDITABLE_SECTIONS = ["PHOTO_PRODUCTS", "PRODUCTS", "DRESSES", "SHORTS", "LAYERS", "SETS"];
+/* NON-ENUMERABLE on purpose. As a plain property this marker was serialised into
+   DEFAULT_CONTENT (30 of them) and would have been posted back by the admin, and
+   it would have re-appeared through any array shared by reference. Defined this
+   way JSON.stringify cannot see it at all, so it cannot reach the stored
+   document down ANY path — which is a stronger guarantee than stripping it in
+   the one place it was noticed. */
+const stamp = (obj, sec) => {
+  try { Object.defineProperty(obj, "__sec", { value: sec, enumerable: false, configurable: true, writable: true }); }
+  catch (e) { /* frozen object — edp() falls back to plain text for it */ }
+};
+function tagSections() {
+  const src = { PHOTO_PRODUCTS, PRODUCTS, DRESSES, SHORTS, LAYERS, SETS };
+  EDITABLE_SECTIONS.forEach((sec) => {
+    (src[sec] || []).forEach((it) => { if (it && typeof it === "object") stamp(it, sec); });
+  });
+  if (BIKINI_FEATURE && typeof BIKINI_FEATURE === "object") stamp(BIKINI_FEATURE, "BIKINI_FEATURE");
+}
+/* ⚠ NOT CALLED HERE. tagSections() must run AFTER DEFAULT_CONTENT is snapshotted:
+   calling it first baked __sec into the defaults, which the admin reads through
+   window.OOCH_DEFAULTS and posts straight back — 30 of them. An internal marker
+   must never become part of the stored document. Called below the snapshot. */
+
+const pkey = (item, field) => `${item.__sec}::${item.id}::${field}`;
+const pv = (item, field) => {
+  const k = item && item.__sec && item.id ? pkey(item, field) : null;
+  return k && k in DRAFT ? DRAFT[k] : item[field];
+};
+
+function EditableField({ item, field }) {
+  const [editing, setEditing] = React.useState(false);
+  const raw = pv(item, field);
+  const numeric = typeof item[field] === "number";
+  const long = field === "blurb";
+  if (!editing) {
+    return (
+      <span className="ooch-ed" title="Click to edit"
+            onClick={(e) => { e.stopPropagation(); e.preventDefault(); setEditing(true); }}>
+        {String(raw)}<span className="ooch-pen" aria-hidden="true">✎</span>
+      </span>
+    );
+  }
+  const commit = (val) => {
+    const k = pkey(item, field);
+    const v = numeric ? (Number(val) || 0) : val;
+    if (v === item[field]) delete DRAFT[k]; else DRAFT[k] = v;
+    setEditing(false); _bump();
+  };
+  const P = long ? "textarea" : "input";
+  return React.createElement(P, {
+    className: "ooch-edin", autoFocus: true, defaultValue: raw,
+    type: numeric ? "number" : undefined,
+    rows: long ? 4 : undefined,
+    style: long ? { width: "100%", minWidth: "18em" } : undefined,
+    onClick: (e) => e.stopPropagation(),
+    onBlur: (e) => commit(e.target.value),
+    onKeyDown: (e) => {
+      if (e.key === "Enter" && !long) { e.preventDefault(); commit(e.currentTarget.value); }
+      if (e.key === "Escape") setEditing(false);
+    },
+  });
+}
+/* plain value normally, editable in edit mode — and a no-op for anything that
+   was never stamped (quiz result items, set line items), so an unsupported
+   field degrades to text rather than throwing. */
+const edp = (item, field) =>
+  (EDIT && item && item.__sec && item.id) ? <EditableField item={item} field={field} /> : (item ? pv(item, field) : "");
+
 function EditBar() {
   const [, setN] = React.useState(0);
   const [busy, setBusy] = React.useState(false);
@@ -2042,7 +2119,26 @@ function EditBar() {
     setBusy(true); setMsg("Saving…");
     fetch("/api/content", { cache: "no-store" }).then((r) => r.json()).then((cur) => {
       const content = Object.assign({}, (cur && cur.content) || {});
-      if (Object.keys(DRAFT).length) content.COPY = Object.assign({}, content.COPY || {}, DRAFT);
+      const copyDraft = {}, prodDraft = {};
+      Object.keys(DRAFT).forEach((k) => (k.indexOf("::") > -1 ? prodDraft : copyDraft)[k] = DRAFT[k]);
+      if (Object.keys(copyDraft).length) content.COPY = Object.assign({}, content.COPY || {}, copyDraft);
+      if (Object.keys(prodDraft).length) {
+        const live = { PHOTO_PRODUCTS, PRODUCTS, DRESSES, SHORTS, LAYERS, SETS, BIKINI_FEATURE };
+        Object.keys(prodDraft).forEach((k) => {
+          const [sec, id, field] = k.split("::");
+          const base = content[sec] || live[sec];
+          if (!base) return;
+          if (Array.isArray(base)) {
+            content[sec] = base.map((it) => {
+              const copy = Object.assign({}, it); delete copy.__sec;
+              return String(it.id) === id ? Object.assign(copy, { [field]: prodDraft[k] }) : copy;
+            });
+          } else {
+            const copy = Object.assign({}, base, { [field]: prodDraft[k] }); delete copy.__sec;
+            content[sec] = copy;
+          }
+        });
+      }
       if (Object.keys(IMGDRAFT).length) content.IMG = Object.assign({}, IMG, content.IMG || {}, IMGDRAFT);
       return fetch("/api/content", {
         method: "POST", headers: { "Content-Type": "application/json" },
@@ -2078,13 +2174,16 @@ function EditBar() {
   );
 }
 
-const clone = (v) => JSON.parse(JSON.stringify(v));
+/* strips __sec, the internal section marker, wherever it appears — belt and
+   braces against the ordering bug above ever coming back. */
+const clone = (v) => JSON.parse(JSON.stringify(v), (k, val) => (k === "__sec" ? undefined : val));
 
 export const DEFAULT_CONTENT = clone({
   IMG, COLOURS, SIZES, PHOTO_PRODUCTS, PRODUCTS, DRESSES, DRESS_COLOURS,
   DENIM_COLOURS, SHORTS, LAYERS, BIKINI_FEATURE, SETS, CATEGORIES, TICKER,
   QUESTIONS, RESULTS, SIZE_CHART, SIG_VIEWS, MODELS, BG, COPY,
 });
+tagSections();   /* now the defaults are safely captured, stamp the live arrays */
 
 /* The order matters: assign the raw structures first, then rebuild everything
    that is computed from them. */
@@ -2128,6 +2227,7 @@ export function applyContent(doc) {
     it && it.coloursFollowPalette ? { ...it, colours: FIVE_BLUES } : it);
   SHORTS = follow(SHORTS);
   LAYERS = follow(LAYERS);
+  tagSections();   /* the arrays were just replaced — re-stamp or edp() goes blind */
   return true;
 }
 
