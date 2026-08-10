@@ -5,7 +5,7 @@ node_modules/
 caddy_data/
 caddy_config/
 
-# Uploaded photos and the photo map live outside the repo, in /srv/ooch/data,
+# Uploads and the photo/state maps live in /srv/ooch/data, outside the repo,
 # so a clone never carries someone's camera roll and a deploy never overwrites it.
 data/
 uploads/
