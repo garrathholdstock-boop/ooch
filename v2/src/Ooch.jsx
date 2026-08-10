@@ -1142,6 +1142,16 @@ let QUESTIONS = [
       { value: "summer", label: "Summer", sub: "Light and bare arms" } ] },
 ];
 
+/* ART_BY_NAME — 2026-08-10. These four quiz items used to hold a React COMPONENT
+   directly (art: Shorts). DEFAULT_CONTENT is snapshotted with JSON.stringify for
+   the admin, and JSON SILENTLY DROPS FUNCTION VALUES — so the admin read them
+   back without their art and posted that document on any save, and the renderer
+   then did <undefined/> and unmounted the whole app: a white page on three of
+   the four quiz outcomes, triggered by pressing Save with no edits at all.
+   Referring to the component BY NAME survives the round trip and makes the field
+   editable in the console like any other string. */
+const ART_BY_NAME = { Shorts, CropTop, FlowyTop, Blazer };
+
 let RESULTS = {
   "comfort-winter": { name: "Cosy season",
     blurb: "Hoodies you live in and tracksuit pants that go everywhere. Warm, soft, zero effort.",
@@ -1156,14 +1166,14 @@ let RESULTS = {
     items: [
       { name: "Everyday tee", price: 55, img: "tee-baby-blue" },
       { name: "Everyday tee in cornflower", price: 55, img: "tee-cornflower" },
-      { name: "Relaxed short", price: 40, art: Shorts },
+      { name: "Relaxed short", price: 40, artName: "Shorts" },
       { name: "Mini skort", price: 75, img: "skort-baby-blue" },
     ] },
   "style-summer": { name: "Summer statement",
     blurb: "Crop tops and flowy one-off tops, with mini shorts, skirts and skorts to match.",
     items: [
-      { name: "Crop top", price: 34, art: CropTop },
-      { name: "Flowy top", price: 44, art: FlowyTop },
+      { name: "Crop top", price: 34, artName: "CropTop" },
+      { name: "Flowy top", price: 44, artName: "FlowyTop" },
       { name: "Mini skort", price: 75, img: "skort-navy-blue" },
       { name: "Bow headband", price: 20, img: "band-bow-baby-blue" },
     ] },
@@ -1172,7 +1182,7 @@ let RESULTS = {
     items: [
       { name: "Fitted knit top", price: 95, img: "knit-front" },
       { name: "Knit top, back", price: 95, img: "knit-back" },
-      { name: "Tailored jacket", price: 118, art: Blazer },
+      { name: "Tailored jacket", price: 118, artName: "Blazer" },
       { name: "Ooch tailored pant", price: 129, img: "dp-black-front" },
     ] },
 };
@@ -2039,12 +2049,12 @@ export default function Ooch() {
             <p className="rblurb">{result.blurb}</p>
             <div className="rgrid">
               {result.items.map((it, i) => {
-                const Art = it.art;
+                const Art = it.art || ART_BY_NAME[it.artName] || null;
                 return (
                   <article className="card" key={it.name}>
                     <div className="art" style={{ background: it.img ? "#F2F1EF" : BG[i % BG.length] }}>
                       {it.img ? <img src={IMG[it.img]} alt={it.name} />
-                              : <Art a={i % 2 ? "#BFE1F6" : "#FFFFFF"} b="#2C6E9B" />}
+                              : Art ? <Art a={i % 2 ? "#BFE1F6" : "#FFFFFF"} b="#2C6E9B" /> : null}
                     </div>
                     <div className="pmeta">
                       <div className="prow">

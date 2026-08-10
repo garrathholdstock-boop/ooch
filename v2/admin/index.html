@@ -113,7 +113,7 @@ details>summary{cursor:pointer;font-weight:700;color:var(--soft);padding:.3em 0}
    Defaults are read from the shop's own bundle through a hidden frame, so
    "reset to original" can never drift from what the site actually ships.
    ══════════════════════════════════════════════════════════════════════════ */
-var DEFAULTS = null, CONTENT = null, SECTION = null, DIRTY = false, IMAGES = [];
+var DEFAULTS = null, CONTENT = null, SECTION = null, DIRTY = false, IMAGES = [], BASE_TS = 0;
 
 /* Which sections exist, in the order a person would work through them, with
    plain-English names — the code's constant names mean nothing to the girls. */
@@ -154,6 +154,14 @@ var el = function(id){ return document.getElementById(id); };
 var esc = function(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
 var clone = function(v){ return JSON.parse(JSON.stringify(v)); };
+/* Image paths in the content are relative to the SHOP root ("img/x.webp").
+   This page lives at /admin/, so a bare relative src resolves to /admin/img/...
+   — which nginx answers with this very page. Anchor them at the root. */
+var src = function(p){
+  if (!p) return "";
+  if (/^(https?:|data:|\/)/.test(p)) return p;
+  return "/" + p;
+};
 
 function setStatus(msg, cls){
   ["status","status2"].forEach(function(id){
@@ -187,6 +195,7 @@ function loadContent(){
     fetch("/api/uploads",  {cache:"no-store"}).then(function(r){ return r.json(); }).catch(function(){ return {files:[]}; })
   ]).then(function(res){
     var saved = (res[0] && res[0].content) || {};
+    BASE_TS = (res[0] && res[0].ts) || 0;   /* what this page was built from — sent back on save */
     /* Start from the defaults and lay any saved overrides on top, so a section
        nobody has touched still shows real content rather than an empty form. */
     CONTENT = clone(DEFAULTS);
@@ -315,7 +324,7 @@ function renderImgMap(box, obj){
     var rows = keys.filter(function(k){ return !f || k.indexOf(f)>-1; }).slice(0,150);
     el("imgrows").innerHTML = rows.map(function(k){
       return '<div class="row"><label>'+esc(k)+'</label><div class="imgpick">'+
-        '<img class="thumb" src="'+esc(obj[k])+'" alt="" onerror="this.style.opacity=.25">'+
+        '<img class="thumb" src="'+esc(src(obj[k]))+'" alt="" onerror="this.style.opacity=.25">'+
         '<button class="btn ghost" data-pick="'+esc(k)+'">Change</button>'+
         '<code>'+esc(obj[k])+'</code></div></div>';
     }).join("") + (keys.length>rows.length ? '<p class="hint">Showing '+rows.length+' of '+keys.length+' — type to narrow.</p>' : "");
@@ -358,12 +367,12 @@ function fields(box, obj, sectionKey){
                        (CONTENT.IMG && (CONTENT.IMG[v] !== undefined));
       if (looksImage) {
         var ip = document.createElement("div"); ip.className="imgpick";
-        var im = document.createElement("img"); im.className="thumb"; im.src = CONTENT.IMG[v] || "";
+        var im = document.createElement("img"); im.className="thumb"; im.src = src(CONTENT.IMG[v] || "");
         im.onerror = function(){ im.style.opacity=.25; };
         var b = document.createElement("button"); b.className="btn ghost"; b.textContent="Change picture";
         var c = document.createElement("code"); c.textContent = v;
         b.onclick = function(){
-          pickImageName(function(nm){ obj[k]=nm; c.textContent=nm; im.src=CONTENT.IMG[nm]||""; im.style.opacity=1; markDirty(); });
+          pickImageName(function(nm){ obj[k]=nm; c.textContent=nm; im.src=src(CONTENT.IMG[nm]||""); im.style.opacity=1; markDirty(); });
         };
         ip.appendChild(im); ip.appendChild(b); ip.appendChild(c); cell.appendChild(ip); return;
       }
@@ -439,7 +448,7 @@ function pickImage(cb){
     '<input type="file" accept="image/jpeg,image/png,image/gif,image/webp" id="up"><p class="hint" id="upmsg"></p>'+
     '<div class="grid" id="g"></div>');
   m.querySelector("#g").innerHTML = IMAGES.map(function(p){
-    return '<figure data-p="'+esc(p)+'"><img src="'+esc(p)+'" loading="lazy" alt=""><figcaption>'+esc(p.split("/").pop())+'</figcaption></figure>';
+    return '<figure data-p="'+esc(p)+'"><img src="'+esc(src(p))+'" loading="lazy" alt=""><figcaption>'+esc(p.split("/").pop())+'</figcaption></figure>';
   }).join("");
   Array.prototype.forEach.call(m.querySelectorAll("[data-p]"), function(f){
     f.onclick = function(){ cb(f.dataset.p); document.body.removeChild(m); };
@@ -463,7 +472,7 @@ function pickImageName(cb){
   function draw(){
     var q = (m.querySelector("#f").value||"").toLowerCase();
     m.querySelector("#g").innerHTML = names.filter(function(n){ return !q || n.indexOf(q)>-1; }).slice(0,180)
-      .map(function(n){ return '<figure data-n="'+esc(n)+'"><img src="'+esc(CONTENT.IMG[n])+'" loading="lazy" alt=""><figcaption>'+esc(n)+'</figcaption></figure>'; }).join("");
+      .map(function(n){ return '<figure data-n="'+esc(n)+'"><img src="'+esc(src(CONTENT.IMG[n]))+'" loading="lazy" alt=""><figcaption>'+esc(n)+'</figcaption></figure>'; }).join("");
     Array.prototype.forEach.call(m.querySelectorAll("[data-n]"), function(f){
       f.onclick = function(){ cb(f.dataset.n); document.body.removeChild(m); };
     });
@@ -502,11 +511,11 @@ function shrink(file){
 el("save").onclick = function(){
   el("save").disabled = true; setStatus("Saving…", "hint");
   fetch("/api/content", {method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({content: CONTENT})})
+    body: JSON.stringify({content: CONTENT, baseTs: BASE_TS})})
     .then(function(r){ return r.json().then(function(j){ return {ok:r.ok, j:j}; }); })
     .then(function(res){
-      if (!res.ok) { setStatus("Save failed: " + ((res.j&&(res.j.detail||res.j.error))||"unknown"), "err"); el("save").disabled=false; return; }
-      DIRTY = false;
+      if (!res.ok) { setStatus((res.j && res.j.detail) || ("Save failed: " + ((res.j&&res.j.error)||"unknown")), "err"); el("save").disabled=false; return; }
+      DIRTY = false; BASE_TS = res.j && res.j.ts ? res.j.ts : BASE_TS;
       setStatus("Saved. The shop shows this on its next load.", "saved");
     })
     .catch(function(){ setStatus("Save failed — no connection.", "err"); el("save").disabled = false; });

@@ -248,6 +248,28 @@ const server = http.createServer(async (req, res) => {
       return json(res, 400, { error: 'unknown_shape', detail: 'no recognised content keys', known: CONTENT_KEYS });
     }
     const unknown = keys.filter((k) => !known.has(k));
+
+    /* ★ STALENESS CHECK (2026-08-10, after an audit). The admin always posts the
+       WHOLE document — defaults plus overrides — so without this, a tab opened
+       an hour ago and saved now silently reverts every section somebody else has
+       touched since, including sections the person never opened. /api/state
+       above has had this guard since it was written; /api/content did not, and
+       last-write-wins across a whole document is a much worse trade than
+       last-write-wins across one gate switch.
+       The client sends the ts it loaded; older than what is on disk means it has
+       not seen the current version, so it is refused rather than merged — a
+       merge would be guesswork about which side of each field is intended. */
+    let cur = { ts: 0 };
+    try { cur = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf8')); } catch (e) {}
+    const baseTs = Number(body.baseTs);
+    if (cur && cur.ts && Number.isFinite(baseTs) && baseTs < cur.ts) {
+      return json(res, 409, {
+        error: 'stale',
+        detail: 'Someone else saved after this page was loaded. Reload the admin to pick up their changes, then reapply yours.',
+        serverTs: cur.ts, yourTs: baseTs,
+      });
+    }
+
     try {
       /* Keep the previous document before overwriting. Cheap, and the only
          thing standing between a fat-fingered save and a lost afternoon. */
