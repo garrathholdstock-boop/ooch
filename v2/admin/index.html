@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>ooch admin</title>
+<style>
+/* ==================================================================
+   ooch admin — 2026-08-10
+   Vanilla JS on purpose: the shop is a built React app, and giving the
+   console its own build step would mean two things to rebuild every
+   time someone changes a price. This is one file, edit and refresh.
+   ================================================================== */
+:root{
+  --wash:#F5FBFF; --white:#fff; --baby:#D4DDED; --powder:#E4F2FC;
+  --deep:#1F4460; --ink:#22384A; --soft:#5B7A96; --line:#DCEAF5;
+  --ok:#1C7A43; --ok2:#137A45; --warn:#B4690E; --bad:#B4232A;
+  --radius:16px; --shadow:0 2px 14px rgba(24,70,110,.08);
+}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--wash);color:var(--ink);
+  font:15px/1.5 'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+h1,h2,h3{margin:0;line-height:1.15;font-weight:800}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,textarea,select{font:inherit;color:inherit;width:100%;padding:.5em .65em;
+  border:1px solid var(--line);border-radius:10px;background:var(--white)}
+textarea{min-height:5.5em;resize:vertical}
+input[type=checkbox]{width:auto}
+input[type=color]{padding:2px;height:2.4rem;cursor:pointer}
+a{color:var(--deep)}
+
+.top{position:sticky;top:0;z-index:30;background:rgba(245,251,255,.94);
+  backdrop-filter:blur(12px);border-bottom:1px solid var(--line);padding:10px 14px;
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.mark{font-size:22px;font-weight:800;color:var(--deep);margin-right:auto}
+.btn{background:var(--deep);color:#fff;border-radius:999px;padding:.5em 1.1em;font-weight:800}
+.btn.ghost{background:var(--powder);color:var(--deep)}
+.btn.warn{background:#fdeee0;color:var(--warn)}
+.btn.bad{background:#fdecec;color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.wrap{display:flex;gap:16px;align-items:flex-start;padding:14px;max-width:1400px;margin:0 auto}
+nav.side{position:sticky;top:64px;flex:0 0 210px;background:var(--white);border-radius:var(--radius);
+  box-shadow:var(--shadow);padding:8px;max-height:calc(100vh - 80px);overflow:auto}
+nav.side button{display:block;width:100%;text-align:left;padding:.5em .7em;border-radius:10px;
+  font-weight:700;color:var(--soft)}
+nav.side button:hover{background:var(--powder)}
+nav.side button[aria-current="true"]{background:var(--deep);color:#fff}
+nav.side .cnt{float:right;opacity:.65;font-weight:600}
+main{flex:1 1 auto;min-width:0}
+.panel{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:14px;overflow:hidden}
+.panel>h3{padding:12px 14px;border-bottom:1px solid var(--line);font-size:16px}
+.pad{padding:14px}
+.hint{color:var(--soft);font-size:13px;margin:.35em 0}
+.row{display:grid;grid-template-columns:170px 1fr;gap:10px;align-items:start;margin-bottom:10px}
+@media(max-width:640px){.row{grid-template-columns:1fr}.wrap{flex-direction:column}nav.side{position:static;flex:1 1 auto;width:100%}}
+.row>label{font-weight:700;font-size:13.5px;padding-top:.55em;color:var(--soft)}
+.item{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px;background:#fcfeff}
+.item>.head{display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap}
+.item>.head b{margin-right:auto}
+.tag{display:inline-flex;align-items:center;gap:6px;background:var(--powder);border-radius:999px;
+  padding:.25em .7em;font-size:13px;font-weight:700;margin:0 6px 6px 0}
+.tag button{color:var(--bad);font-weight:900}
+.thumb{width:64px;height:80px;object-fit:cover;border-radius:8px;background:var(--powder);display:block}
+.imgpick{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;max-height:340px;overflow:auto;
+  border:1px solid var(--line);border-radius:12px;padding:8px}
+.grid figure{margin:0;cursor:pointer;border-radius:8px;overflow:hidden;border:2px solid transparent}
+.grid figure:hover{border-color:var(--deep)}
+.grid img{width:100%;height:88px;object-fit:cover;display:block}
+.grid figcaption{font-size:10.5px;padding:2px 4px;color:var(--soft);word-break:break-all}
+.modal{position:fixed;inset:0;background:rgba(31,68,96,.45);z-index:60;display:grid;place-items:center;padding:14px}
+.modal>div{background:#fff;border-radius:var(--radius);max-width:760px;width:100%;max-height:88vh;overflow:auto;padding:14px}
+.bar{position:sticky;bottom:0;background:rgba(245,251,255,.96);backdrop-filter:blur(10px);
+  border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;z-index:20}
+.status{font-weight:700}
+.dirty{color:var(--warn)}
+.saved{color:var(--ok2)}
+.err{color:var(--bad)}
+code{background:var(--powder);padding:.1em .4em;border-radius:5px;font-size:12.5px}
+details>summary{cursor:pointer;font-weight:700;color:var(--soft);padding:.3em 0}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <span class="mark">ooch admin</span>
+  <span id="status" class="status hint">loading…</span>
+  <button class="btn ghost" id="preview">Open shop</button>
+  <button class="btn ghost" id="revisions">History</button>
+  <button class="btn" id="save" disabled>Save</button>
+</div>
+
+<div class="wrap">
+  <nav class="side" id="nav"></nav>
+  <main id="main"><div class="panel"><div class="pad hint">Loading the shop's content…</div></div></main>
+</div>
+
+<div class="bar">
+  <span id="status2" class="status hint"></span>
+  <span style="margin-left:auto"></span>
+  <button class="btn warn" id="revert">Discard changes</button>
+  <button class="btn bad" id="reset">Reset everything to original</button>
+</div>
+
+<iframe id="shopframe" src="/?admin-defaults=1" style="display:none" title="defaults"></iframe>
+
+<script>
+"use strict";
+/* ══════════════════════════════════════════════════════════════════════════
+   The console edits ONE document — the same one the shop fetches at boot.
+   Defaults are read from the shop's own bundle through a hidden frame, so
+   "reset to original" can never drift from what the site actually ships.
+   ══════════════════════════════════════════════════════════════════════════ */
+var DEFAULTS = null, CONTENT = null, SECTION = null, DIRTY = false, IMAGES = [];
+
+/* Which sections exist, in the order a person would work through them, with
+   plain-English names — the code's constant names mean nothing to the girls. */
+var SECTIONS = [
+  { key:"PHOTO_PRODUCTS", label:"Staples",        note:"The everyday pieces with the colour slider — tee, hoodie, trackie, singlet." },
+  { key:"LAYERS",         label:"Layers & tops",  note:"Pieces with a full detail page: views, close-ups, colours." },
+  { key:"DRESSES",        label:"Dresses",        note:"Full detail pages." },
+  { key:"SHORTS",         label:"Bottoms",        note:"Pants and shorts with detail pages." },
+  { key:"BIKINI_FEATURE", label:"The bikini",     note:"The featured swim piece." },
+  { key:"PRODUCTS",       label:"Accessories",    note:"Headbands and small goods — card only, no detail page." },
+  { key:"SETS",           label:"Sets",           note:"Bundles. Prices come from the items inside." },
+  { key:"COLOURS",        label:"Colour palette", note:"The five blues. Editing these updates every product that follows the palette." },
+  { key:"DRESS_COLOURS",  label:"Dress colours",  note:"" },
+  { key:"DENIM_COLOURS",  label:"Denim colours",  note:"" },
+  { key:"CATEGORIES",     label:"Categories",     note:"The nav buttons across the top." },
+  { key:"SIZES",          label:"Sizes",          note:"The size run offered on sized items." },
+  { key:"SIZE_CHART",     label:"Size chart",     note:"The measurements table." },
+  { key:"QUESTIONS",      label:"Quiz questions",  note:"The style quiz." },
+  { key:"RESULTS",        label:"Quiz results",   note:"One result per answer combination." },
+  { key:"SIG_VIEWS",      label:"Hoodie views",   note:"The signature hoodie gallery." },
+  { key:"MODELS",         label:"Hoodie models",  note:"" },
+  { key:"TICKER",         label:"Ticker",         note:"The scrolling strip at the very top." },
+  { key:"BG",             label:"Background bands", note:"The alternating section colours." },
+  { key:"IMG",            label:"Image library",  note:"Every image name the site can use, and the file it points at." },
+];
+
+var LABELS = {
+  name:"Name", price:"Price (AUD)", blurb:"Description", tagline:"Tagline", badge:"Badge",
+  loves:"Loves", cat:"Category", img:"Image", prefix:"Image prefix", sizes:"Has sizes",
+  staple:"Staple", limited:"Limited edition", key:"Key", label:"Label", note:"Note",
+  hex:"Colour", colours:"Colours", views:"Views", details:"Close-up details", items:"Items",
+  title:"Title", text:"Question", options:"Options", value:"Value", sub:"Sub-label",
+  au:"AU size", bust:"Bust (cm)", waist:"Waist (cm)", hip:"Hip (cm)", cap:"Caption",
+  colourNote:"Colour note", fixed:"Fixed bundle", id:"ID", coloursFollowPalette:"Follows the palette",
+};
+function lbl(k){ return LABELS[k] || (k.charAt(0).toUpperCase()+k.slice(1).replace(/([A-Z])/g," $1")); }
+var el = function(id){ return document.getElementById(id); };
+var esc = function(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); };
+var clone = function(v){ return JSON.parse(JSON.stringify(v)); };
+
+function setStatus(msg, cls){
+  ["status","status2"].forEach(function(id){
+    var n = el(id); if(!n) return; n.textContent = msg; n.className = "status " + (cls||"hint");
+  });
+}
+function markDirty(){ DIRTY = true; el("save").disabled = false; setStatus("Unsaved changes", "dirty"); }
+
+/* ---- boot ------------------------------------------------------------- */
+function boot(){
+  var frame = el("shopframe");
+  var got = false;
+  function tryDefaults(){
+    if (got) return;
+    try {
+      var d = frame.contentWindow && frame.contentWindow.OOCH_DEFAULTS;
+      if (d) { got = true; DEFAULTS = clone(d); loadContent(); }
+    } catch(e){ /* not ready */ }
+  }
+  frame.addEventListener("load", function(){ setTimeout(tryDefaults, 300); });
+  var tries = 0;
+  var iv = setInterval(function(){
+    tryDefaults(); if (got || ++tries > 40) clearInterval(iv);
+    if (!got && tries > 40) setStatus("Could not read the shop's original content — is the site up?", "err");
+  }, 250);
+}
+
+function loadContent(){
+  Promise.all([
+    fetch("/api/content", {cache:"no-store"}).then(function(r){ return r.json(); }).catch(function(){ return {content:{}}; }),
+    fetch("/api/uploads",  {cache:"no-store"}).then(function(r){ return r.json(); }).catch(function(){ return {files:[]}; })
+  ]).then(function(res){
+    var saved = (res[0] && res[0].content) || {};
+    /* Start from the defaults and lay any saved overrides on top, so a section
+       nobody has touched still shows real content rather than an empty form. */
+    CONTENT = clone(DEFAULTS);
+    Object.keys(saved).forEach(function(k){ CONTENT[k] = saved[k]; });
+    IMAGES = ((res[1] && res[1].files) || []).slice();
+    /* Everything already in the shop's image library, plus anything uploaded. */
+    Object.keys(CONTENT.IMG || {}).forEach(function(k){
+      var p = CONTENT.IMG[k]; if (p && IMAGES.indexOf(p) < 0) IMAGES.push(p);
+    });
+    DIRTY = false; el("save").disabled = true;
+    setStatus(Object.keys(saved).length ? "Loaded — showing your saved content" : "Loaded — showing the original content", "hint");
+    renderNav(); show(SECTIONS[0].key);
+  });
+}
+
+function renderNav(){
+  el("nav").innerHTML = SECTIONS.map(function(s){
+    var v = CONTENT[s.key];
+    var n = Array.isArray(v) ? v.length : (v && typeof v === "object" ? Object.keys(v).length : "");
+    return '<button data-k="'+s.key+'" aria-current="'+(s.key===SECTION)+'">'+esc(s.label)+
+      '<span class="cnt">'+n+'</span></button>';
+  }).join("");
+  Array.prototype.forEach.call(el("nav").querySelectorAll("button"), function(b){
+    b.onclick = function(){ show(b.dataset.k); };
+  });
+}
+
+/* ---- rendering a section ---------------------------------------------- */
+function show(key){
+  SECTION = key; renderNav();
+  var meta = SECTIONS.filter(function(s){ return s.key===key; })[0] || {key:key,label:key,note:""};
+  var val = CONTENT[key];
+  var h = '<div class="panel"><h3>'+esc(meta.label)+'</h3><div class="pad">';
+  if (meta.note) h += '<p class="hint" style="margin-top:0">'+esc(meta.note)+'</p>';
+
+  if (Array.isArray(val)) {
+    h += '<div id="list"></div><button class="btn ghost" id="add">Add '+esc(meta.label.replace(/s$/,"").toLowerCase())+'</button>';
+  } else if (val && typeof val === "object") {
+    h += '<div id="obj"></div>';
+  } else {
+    h += '<p class="hint">Nothing to edit here.</p>';
+  }
+  h += '</div></div>';
+  h += '<details class="panel"><summary style="padding:12px 14px">Advanced: edit this section as raw data</summary>'+
+       '<div class="pad"><p class="hint">For anything the form above cannot reach. Must stay valid JSON — '+
+       'the Save button switches off while it is broken.</p>'+
+       '<textarea id="raw" style="min-height:16em;font-family:ui-monospace,Menlo,monospace;font-size:12.5px"></textarea>'+
+       '<p class="hint" id="rawmsg"></p></div></details>';
+  el("main").innerHTML = h;
+
+  if (Array.isArray(val)) { renderList(key, val); el("add").onclick = function(){ addItem(key, val); }; }
+  else if (val && typeof val === "object") { renderObject(key, val); }
+
+  var raw = el("raw");
+  raw.value = JSON.stringify(val, null, 2);
+  raw.oninput = function(){
+    try {
+      var parsed = JSON.parse(raw.value);
+      CONTENT[SECTION] = parsed; el("rawmsg").textContent = "Valid."; el("rawmsg").className="hint saved";
+      markDirty();
+    } catch(e){
+      el("rawmsg").textContent = "Not valid JSON: " + e.message; el("rawmsg").className="hint err";
+      el("save").disabled = true;
+    }
+  };
+}
+
+/* A list of primitives (ticker lines, sizes, colours-as-strings) vs a list of
+   objects (products) need different shapes — decide per item, not per section,
+   because some lists are mixed. */
+function renderList(key, arr){
+  var box = el("list"); box.innerHTML = "";
+  arr.forEach(function(item, i){
+    var d = document.createElement("div"); d.className = "item";
+    var title = (item && (item.name || item.label || item.title || item.text || item.key || item.id)) || ("Item " + (i+1));
+    d.innerHTML = '<div class="head"><b>'+esc(typeof item === "object" ? title : item)+'</b>'+
+      '<button class="btn ghost" data-up="'+i+'" title="Move up">↑</button>'+
+      '<button class="btn ghost" data-down="'+i+'" title="Move down">↓</button>'+
+      '<button class="btn bad" data-del="'+i+'">Remove</button></div><div class="body"></div>';
+    box.appendChild(d);
+    var body = d.querySelector(".body");
+    if (item && typeof item === "object") fields(body, item, key);
+    else {
+      var inp = document.createElement("input");
+      inp.value = item == null ? "" : item;
+      inp.oninput = function(){ arr[i] = inp.value; markDirty(); };
+      body.appendChild(inp);
+    }
+    d.querySelector("[data-del]").onclick = function(){
+      if (!confirm("Remove this?")) return;
+      arr.splice(i,1); markDirty(); renderList(key, arr); renderNav();
+    };
+    d.querySelector("[data-up]").onclick = function(){
+      if (i===0) return; var t=arr[i-1]; arr[i-1]=arr[i]; arr[i]=t; markDirty(); renderList(key,arr);
+    };
+    d.querySelector("[data-down]").onclick = function(){
+      if (i===arr.length-1) return; var t=arr[i+1]; arr[i+1]=arr[i]; arr[i]=t; markDirty(); renderList(key,arr);
+    };
+  });
+  if (!arr.length) box.innerHTML = '<p class="hint">Nothing here yet.</p>';
+}
+
+function renderObject(key, obj){
+  var box = el("obj"); box.innerHTML = "";
+  /* IMG is a flat name -> file map and would be unusable as 700 stacked rows,
+     so it gets a picker-per-entry with a filter instead. */
+  if (key === "IMG") return renderImgMap(box, obj);
+  if (key === "RESULTS") {
+    Object.keys(obj).forEach(function(k){
+      var d = document.createElement("div"); d.className="item";
+      d.innerHTML = '<div class="head"><b>'+esc(k)+'</b></div><div class="body"></div>';
+      box.appendChild(d); fields(d.querySelector(".body"), obj[k], key);
+    });
+    return;
+  }
+  fields(box, obj, key);
+}
+
+function renderImgMap(box, obj){
+  var keys = Object.keys(obj).sort();
+  box.innerHTML = '<input id="imgfilter" placeholder="Filter by name…" style="margin-bottom:10px">'+
+    '<p class="hint">'+keys.length+' image names. The site refers to pictures by these names; each points at a file.</p>'+
+    '<div id="imgrows"></div>';
+  function draw(){
+    var f = (el("imgfilter").value||"").toLowerCase();
+    var rows = keys.filter(function(k){ return !f || k.indexOf(f)>-1; }).slice(0,150);
+    el("imgrows").innerHTML = rows.map(function(k){
+      return '<div class="row"><label>'+esc(k)+'</label><div class="imgpick">'+
+        '<img class="thumb" src="'+esc(obj[k])+'" alt="" onerror="this.style.opacity=.25">'+
+        '<button class="btn ghost" data-pick="'+esc(k)+'">Change</button>'+
+        '<code>'+esc(obj[k])+'</code></div></div>';
+    }).join("") + (keys.length>rows.length ? '<p class="hint">Showing '+rows.length+' of '+keys.length+' — type to narrow.</p>' : "");
+    Array.prototype.forEach.call(el("imgrows").querySelectorAll("[data-pick]"), function(b){
+      b.onclick = function(){ pickImage(function(p){ obj[b.dataset.pick] = p; markDirty(); draw(); }); };
+    });
+  }
+  el("imgfilter").oninput = draw; draw();
+}
+
+/* ---- generic field rendering ------------------------------------------ */
+function fields(box, obj, sectionKey){
+  Object.keys(obj).forEach(function(k){
+    var v = obj[k];
+    var row = document.createElement("div"); row.className = "row";
+    row.innerHTML = '<label>'+esc(lbl(k))+'</label>';
+    var cell = document.createElement("div"); row.appendChild(cell); box.appendChild(row);
+
+    if (k === "hex" || (typeof v === "string" && /^#[0-9a-f]{3,8}$/i.test(v))) {
+      var wrap = document.createElement("div"); wrap.style.display="flex"; wrap.style.gap="8px";
+      var col = document.createElement("input"); col.type="color"; col.value = v; col.style.flex="0 0 3rem";
+      var txt = document.createElement("input"); txt.value = v;
+      col.oninput = function(){ obj[k]=col.value; txt.value=col.value; markDirty(); };
+      txt.oninput = function(){ obj[k]=txt.value; try{col.value=txt.value;}catch(e){} markDirty(); };
+      wrap.appendChild(col); wrap.appendChild(txt); cell.appendChild(wrap); return;
+    }
+    if (typeof v === "boolean") {
+      var cb = document.createElement("input"); cb.type="checkbox"; cb.checked=v;
+      cb.onchange = function(){ obj[k]=cb.checked; markDirty(); }; cell.appendChild(cb); return;
+    }
+    if (typeof v === "number") {
+      var num = document.createElement("input"); num.type="number"; num.value=v; num.step="any";
+      num.oninput = function(){ obj[k] = num.value===""?0:Number(num.value); markDirty(); };
+      cell.appendChild(num); return;
+    }
+    if (typeof v === "string") {
+      /* Anything that names a picture gets a picker rather than a text box —
+         typing an image name by hand is how you get a silent broken image. */
+      var looksImage = (k === "img" || k === "prefix" || k === "key") &&
+                       (CONTENT.IMG && (CONTENT.IMG[v] !== undefined));
+      if (looksImage) {
+        var ip = document.createElement("div"); ip.className="imgpick";
+        var im = document.createElement("img"); im.className="thumb"; im.src = CONTENT.IMG[v] || "";
+        im.onerror = function(){ im.style.opacity=.25; };
+        var b = document.createElement("button"); b.className="btn ghost"; b.textContent="Change picture";
+        var c = document.createElement("code"); c.textContent = v;
+        b.onclick = function(){
+          pickImageName(function(nm){ obj[k]=nm; c.textContent=nm; im.src=CONTENT.IMG[nm]||""; im.style.opacity=1; markDirty(); });
+        };
+        ip.appendChild(im); ip.appendChild(b); ip.appendChild(c); cell.appendChild(ip); return;
+      }
+      var long = v.length > 70 || k === "blurb" || k === "text";
+      var inp = document.createElement(long ? "textarea" : "input");
+      inp.value = v; inp.oninput = function(){ obj[k]=inp.value; markDirty(); };
+      cell.appendChild(inp); return;
+    }
+    if (Array.isArray(v)) {
+      if (v.every(function(x){ return typeof x !== "object" || x === null; })) {
+        /* primitives: editable chips + add */
+        var tags = document.createElement("div");
+        function drawTags(){
+          tags.innerHTML = v.map(function(x,i){
+            return '<span class="tag">'+esc(x)+' <button data-i="'+i+'">×</button></span>';
+          }).join("") + '<button class="btn ghost" data-add="1">Add</button>';
+          Array.prototype.forEach.call(tags.querySelectorAll("[data-i]"), function(b){
+            b.onclick = function(){ v.splice(+b.dataset.i,1); markDirty(); drawTags(); };
+          });
+          tags.querySelector("[data-add]").onclick = function(){
+            var s = prompt("Add"); if (s !== null && s !== "") { v.push(s); markDirty(); drawTags(); }
+          };
+        }
+        drawTags(); cell.appendChild(tags); return;
+      }
+      /* list of objects: nested repeatable cards */
+      var host = document.createElement("div");
+      function drawSub(){
+        host.innerHTML = "";
+        v.forEach(function(sub, i){
+          var d = document.createElement("div"); d.className="item";
+          var t = sub.name || sub.label || sub.title || sub.key || ("Item "+(i+1));
+          d.innerHTML = '<div class="head"><b>'+esc(t)+'</b>'+
+            '<button class="btn bad" data-d="'+i+'">Remove</button></div><div class="b"></div>';
+          host.appendChild(d); fields(d.querySelector(".b"), sub, sectionKey);
+          d.querySelector("[data-d]").onclick = function(){ v.splice(i,1); markDirty(); drawSub(); };
+        });
+        var add = document.createElement("button"); add.className="btn ghost"; add.textContent="Add";
+        add.onclick = function(){ v.push(clone(v[0] || {name:""})); markDirty(); drawSub(); };
+        host.appendChild(add);
+      }
+      drawSub(); cell.appendChild(host); return;
+    }
+    if (v && typeof v === "object") { var h2=document.createElement("div"); fields(h2, v, sectionKey); cell.appendChild(h2); return; }
+    var any = document.createElement("input"); any.value = v==null?"":v;
+    any.oninput = function(){ obj[k]=any.value; markDirty(); }; cell.appendChild(any);
+  });
+}
+
+function addItem(key, arr){
+  /* Copy the shape of an existing item so a new one has every field the site
+     expects — an object missing a field the renderer reads is a blank card. */
+  var tmpl = arr.length ? clone(arr[0]) : {};
+  Object.keys(tmpl).forEach(function(k){
+    if (typeof tmpl[k] === "string") tmpl[k] = "";
+    else if (typeof tmpl[k] === "number") tmpl[k] = 0;
+  });
+  if ("name" in tmpl) tmpl.name = "New item";
+  if ("id" in tmpl) tmpl.id = "new-" + Date.now().toString(36);
+  arr.push(tmpl); markDirty(); renderList(key, arr); renderNav();
+}
+
+/* ---- image pickers ----------------------------------------------------- */
+function modal(inner){
+  var m = document.createElement("div"); m.className="modal";
+  m.innerHTML = '<div>'+inner+'</div>';
+  m.onclick = function(e){ if (e.target === m) document.body.removeChild(m); };
+  document.body.appendChild(m); return m;
+}
+function pickImage(cb){
+  var m = modal('<h3>Choose a picture</h3>'+
+    '<p class="hint">Upload a new one, or pick from what is already on the site.</p>'+
+    '<input type="file" accept="image/jpeg,image/png,image/gif,image/webp" id="up"><p class="hint" id="upmsg"></p>'+
+    '<div class="grid" id="g"></div>');
+  m.querySelector("#g").innerHTML = IMAGES.map(function(p){
+    return '<figure data-p="'+esc(p)+'"><img src="'+esc(p)+'" loading="lazy" alt=""><figcaption>'+esc(p.split("/").pop())+'</figcaption></figure>';
+  }).join("");
+  Array.prototype.forEach.call(m.querySelectorAll("[data-p]"), function(f){
+    f.onclick = function(){ cb(f.dataset.p); document.body.removeChild(m); };
+  });
+  m.querySelector("#up").onchange = function(e){
+    var f = e.target.files && e.target.files[0]; if(!f) return;
+    var msg = m.querySelector("#upmsg"); msg.textContent = "Uploading…";
+    shrink(f).then(function(blob){
+      return fetch("/api/upload", {method:"POST", body:blob}).then(function(r){ return r.json(); });
+    }).then(function(j){
+      if (!j || !j.url) { msg.textContent = (j && (j.detail||j.error)) || "Upload failed."; return; }
+      IMAGES.unshift(j.url); cb(j.url); document.body.removeChild(m);
+    }).catch(function(){ msg.textContent = "Upload failed."; });
+  };
+}
+/* Pick an image NAME (a key in IMG) rather than a path — products refer to
+   pictures by name so the same picture can be swapped in one place. */
+function pickImageName(cb){
+  var names = Object.keys(CONTENT.IMG || {}).sort();
+  var m = modal('<h3>Choose a picture</h3><input id="f" placeholder="Filter…"><div class="grid" id="g" style="margin-top:10px"></div>');
+  function draw(){
+    var q = (m.querySelector("#f").value||"").toLowerCase();
+    m.querySelector("#g").innerHTML = names.filter(function(n){ return !q || n.indexOf(q)>-1; }).slice(0,180)
+      .map(function(n){ return '<figure data-n="'+esc(n)+'"><img src="'+esc(CONTENT.IMG[n])+'" loading="lazy" alt=""><figcaption>'+esc(n)+'</figcaption></figure>'; }).join("");
+    Array.prototype.forEach.call(m.querySelectorAll("[data-n]"), function(f){
+      f.onclick = function(){ cb(f.dataset.n); document.body.removeChild(m); };
+    });
+  }
+  m.querySelector("#f").oninput = draw; draw();
+}
+/* Resize in the browser before upload — a phone photo is 4-5MB and the shop
+   would download it at thumbnail size. Falls back to the original on any error. */
+function shrink(file){
+  return new Promise(function(resolve){
+    if (file.type === "image/gif") return resolve(file);
+    var out = file.type === "image/png" ? "image/png" : "image/jpeg";
+    function draw(src, w, h){
+      var s = Math.min(1, 1600/Math.max(w,h));
+      if (s === 1 && file.size < 900*1024) return resolve(file);
+      try{
+        var c = document.createElement("canvas"); c.width = Math.round(w*s); c.height = Math.round(h*s);
+        c.getContext("2d").drawImage(src, 0, 0, c.width, c.height);
+        c.toBlob(function(b){ resolve(b && b.size < file.size ? b : file); }, out, 0.82);
+      }catch(e){ resolve(file); }
+    }
+    if (window.createImageBitmap) {
+      createImageBitmap(file, {imageOrientation:"from-image"})
+        .then(function(bm){ draw(bm, bm.width, bm.height); }).catch(viaImg);
+    } else viaImg();
+    function viaImg(){
+      var im = new Image(), u = URL.createObjectURL(file);
+      im.onload = function(){ draw(im, im.naturalWidth, im.naturalHeight); URL.revokeObjectURL(u); };
+      im.onerror = function(){ URL.revokeObjectURL(u); resolve(file); };
+      im.src = u;
+    }
+  });
+}
+
+/* ---- save / revert / reset / history ----------------------------------- */
+el("save").onclick = function(){
+  el("save").disabled = true; setStatus("Saving…", "hint");
+  fetch("/api/content", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({content: CONTENT})})
+    .then(function(r){ return r.json().then(function(j){ return {ok:r.ok, j:j}; }); })
+    .then(function(res){
+      if (!res.ok) { setStatus("Save failed: " + ((res.j&&(res.j.detail||res.j.error))||"unknown"), "err"); el("save").disabled=false; return; }
+      DIRTY = false;
+      setStatus("Saved. The shop shows this on its next load.", "saved");
+    })
+    .catch(function(){ setStatus("Save failed — no connection.", "err"); el("save").disabled = false; });
+};
+el("revert").onclick = function(){
+  if (DIRTY && !confirm("Throw away the changes you have made since the last save?")) return;
+  loadContent();
+};
+el("reset").onclick = function(){
+  if (!confirm("Reset EVERY section back to the original site content?\n\nYour saved version is kept in History and can be restored.")) return;
+  fetch("/api/content", {method:"DELETE"}).then(function(){ loadContent(); setStatus("Reset to the original content.", "saved"); });
+};
+el("preview").onclick = function(){ window.open("/", "_blank"); };
+el("revisions").onclick = function(){
+  fetch("/api/content/revisions").then(function(r){ return r.json(); }).then(function(d){
+    var revs = (d && d.revisions) || [];
+    var m = modal('<h3>History</h3><p class="hint">Every save keeps the previous version. Restoring replaces what is live now.</p>'+
+      (revs.length ? '<div id="rl"></div>' : '<p class="hint">No previous versions yet.</p>'));
+    if (!revs.length) return;
+    m.querySelector("#rl").innerHTML = revs.map(function(r){
+      return '<div class="row"><label>'+new Date(r.ts).toLocaleString()+'</label>'+
+        '<div><button class="btn ghost" data-r="'+esc(r.id)+'">Restore this</button> '+
+        '<span class="hint">'+Math.round(r.bytes/1024)+' KB</span></div></div>';
+    }).join("");
+    Array.prototype.forEach.call(m.querySelectorAll("[data-r]"), function(b){
+      b.onclick = function(){
+        if (!confirm("Restore this version? What is live now is kept in history too.")) return;
+        fetch("/api/content/restore", {method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({id:b.dataset.r})}).then(function(){ document.body.removeChild(m); loadContent(); });
+      };
+    });
+  });
+};
+window.addEventListener("beforeunload", function(e){ if (DIRTY) { e.preventDefault(); e.returnValue = ""; } });
+
+boot();
+</script>
+</body>
+</html>

@@ -31,6 +31,18 @@ const HOST = '127.0.0.1';                 // nginx fronts this; never bind publi
 const UPLOAD_DIR = '/srv/ooch/data/uploads';
 const PHOTOS_FILE = '/srv/ooch/data/photos.json';
 const STATE_FILE = '/srv/ooch/data/state.json';
+const CONTENT_FILE = '/srv/ooch/data/content.json';
+const REV_DIR = '/srv/ooch/data/revisions';
+
+/* Every structure the v2 site renders from. Used to sanity-check a save: a
+   document naming none of these is a malformed write, and storing it would
+   blank the shop. Unknown keys are reported back rather than silently kept, so
+   a typo in the admin surfaces instead of quietly doing nothing. */
+const CONTENT_KEYS = [
+  'IMG', 'COLOURS', 'SIZES', 'PHOTO_PRODUCTS', 'PRODUCTS', 'DRESSES', 'DRESS_COLOURS',
+  'DENIM_COLOURS', 'SHORTS', 'LAYERS', 'BIKINI_FEATURE', 'SETS', 'CATEGORIES', 'TICKER',
+  'QUESTIONS', 'RESULTS', 'SIZE_CHART', 'SIG_VIEWS', 'MODELS', 'BG',
+];
 const MAX_BYTES = 12 * 1024 * 1024;       // 12 MB — a phone photo, comfortably
 
 /* ★ TOTAL QUOTA (2026-08-09). The admin is deliberately open, so this endpoint
@@ -197,6 +209,106 @@ const server = http.createServer(async (req, res) => {
       fs.renameSync(tmp, STATE_FILE);
     } catch (e) { return json(res, 500, { error: 'write_failed' }); }
     return json(res, 200, { ok: true, ts: body.ts });
+  }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     CONTENT — the v2 site's editable data (2026-08-10).
+     Every structure the React app renders from: products, prices, copy, colour
+     palette, sets, the size chart, the quiz, the ticker, image mappings.
+     The shop fetches this once before its first render; the admin writes it.
+
+     Stored whole rather than per-record. That is honest about what it is —
+     a small document a couple of people edit by hand, not a database — and it
+     makes "reset to original" and rollback trivial. It also means LAST WRITE
+     WINS across editors, which is fine for two people and would not be for
+     twenty. A revision is kept on every write so a bad save can be undone.
+     ══════════════════════════════════════════════════════════════════════════ */
+  if (url.pathname === '/api/content' && req.method === 'GET') {
+    try {
+      const raw = fs.readFileSync(CONTENT_FILE, 'utf8');
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+      return res.end(raw);
+    } catch (e) {
+      return json(res, 200, { ts: 0, content: {} });   // nothing saved: site uses built-ins
+    }
+  }
+
+  if (url.pathname === '/api/content' && (req.method === 'POST' || req.method === 'PUT')) {
+    let body;
+    try { body = JSON.parse((await readBody(req, 16 * 1024 * 1024)).toString('utf8') || '{}'); }
+    catch (e) { return json(res, 400, { error: 'bad_json' }); }
+    if (!body || typeof body.content !== 'object' || body.content === null || Array.isArray(body.content)) {
+      return json(res, 400, { error: 'bad_payload', detail: 'expected {content:{...}}' });
+    }
+    /* Reject a document that names nothing the site understands — almost always
+       a malformed save, and writing it would blank the shop. */
+    const known = new Set(CONTENT_KEYS);
+    const keys = Object.keys(body.content);
+    if (!keys.length || !keys.some((k) => known.has(k))) {
+      return json(res, 400, { error: 'unknown_shape', detail: 'no recognised content keys', known: CONTENT_KEYS });
+    }
+    const unknown = keys.filter((k) => !known.has(k));
+    try {
+      /* Keep the previous document before overwriting. Cheap, and the only
+         thing standing between a fat-fingered save and a lost afternoon. */
+      try {
+        if (fs.existsSync(CONTENT_FILE)) {
+          fs.mkdirSync(REV_DIR, { recursive: true });
+          fs.copyFileSync(CONTENT_FILE, path.join(REV_DIR, 'content-' + Date.now() + '.json'));
+          const revs = fs.readdirSync(REV_DIR).filter((f) => f.startsWith('content-')).sort();
+          for (const old of revs.slice(0, Math.max(0, revs.length - 40))) {
+            try { fs.unlinkSync(path.join(REV_DIR, old)); } catch (e) {}
+          }
+        }
+      } catch (e) { /* a failed revision must not block the save */ }
+
+      const doc = { ts: Date.now(), content: body.content };
+      const tmp = CONTENT_FILE + '.tmp';
+      fs.writeFileSync(tmp, JSON.stringify(doc), { mode: 0o644 });
+      fs.renameSync(tmp, CONTENT_FILE);
+      return json(res, 200, { ok: true, ts: doc.ts, keys: keys.length, ignoredKeys: unknown });
+    } catch (e) {
+      return json(res, 500, { error: 'write_failed' });
+    }
+  }
+
+  /* Drop every override and fall back to the built-in content. */
+  if (url.pathname === '/api/content' && req.method === 'DELETE') {
+    try {
+      if (fs.existsSync(CONTENT_FILE)) {
+        fs.mkdirSync(REV_DIR, { recursive: true });
+        fs.copyFileSync(CONTENT_FILE, path.join(REV_DIR, 'content-' + Date.now() + '.json'));
+        fs.unlinkSync(CONTENT_FILE);
+      }
+      return json(res, 200, { ok: true, reset: true });
+    } catch (e) { return json(res, 500, { error: 'reset_failed' }); }
+  }
+
+  /* Saved revisions, newest first — the undo list. */
+  if (url.pathname === '/api/content/revisions' && req.method === 'GET') {
+    try {
+      const revs = fs.readdirSync(REV_DIR)
+        .filter((f) => f.startsWith('content-'))
+        .map((f) => ({ id: f, ts: Number(f.slice(8, -5)) || 0, bytes: fs.statSync(path.join(REV_DIR, f)).size }))
+        .sort((a, b) => b.ts - a.ts);
+      return json(res, 200, { revisions: revs });
+    } catch (e) { return json(res, 200, { revisions: [] }); }
+  }
+
+  if (url.pathname === '/api/content/restore' && req.method === 'POST') {
+    let body;
+    try { body = JSON.parse((await readBody(req, 64 * 1024)).toString('utf8') || '{}'); }
+    catch (e) { return json(res, 400, { error: 'bad_json' }); }
+    const id = path.basename(String(body.id || ''));
+    if (!/^content-\d+\.json$/.test(id)) return json(res, 400, { error: 'bad_id' });
+    try {
+      const raw = fs.readFileSync(path.join(REV_DIR, id), 'utf8');
+      JSON.parse(raw);                              // never restore something unparseable
+      const tmp = CONTENT_FILE + '.tmp';
+      fs.writeFileSync(tmp, raw, { mode: 0o644 });
+      fs.renameSync(tmp, CONTENT_FILE);
+      return json(res, 200, { ok: true, restored: id });
+    } catch (e) { return json(res, 404, { error: 'not_found_or_corrupt' }); }
   }
 
   /* The whole map, fetched by both the shop and the admin at startup. */

@@ -6,7 +6,7 @@ import React, { useState, useEffect, useRef } from "react";
    five-colour slider. Everything else still vector placeholder.
 ------------------------------------------------------------------- */
 
-const IMG = {
+let IMG = {
   "tee-baby-blue": "img/tee-baby-blue.webp",
   "hoodie-baby-blue": "img/hoodie-baby-blue.webp",
   "pant-baby-blue": "img/pant-baby-blue.webp",
@@ -680,7 +680,7 @@ const HeartIcon = ({ filled }) => (
 );
 
 /* ---------------- data ---------------- */
-const COLOURS = [
+let COLOURS = [
   { key: "baby-blue",  name: "Baby blue",  note: "soft & sweet",       hex: "#D4DDED" },
   { key: "sky-blue",   name: "Sky blue",   note: "bright & fresh",     hex: "#B3CCEB" },
   { key: "cornflower", name: "Cornflower", note: "cool & calm",        hex: "#8DA0C2" },
@@ -688,9 +688,9 @@ const COLOURS = [
   { key: "navy-blue",  name: "Navy blue",  note: "deep & effortless",  hex: "#293046" },
 ];
 
-const SIZES = ["2XS", "XS", "S", "M", "L", "XL"];
+let SIZES = ["2XS", "XS", "S", "M", "L", "XL"];
 
-const PHOTO_PRODUCTS = [
+let PHOTO_PRODUCTS = [
   { id: "tee", staple: true,    name: "Everyday tee", price: 55, prefix: "tee", sizes: true, cat: "tops",
     blurb: "Soft cotton, close fit, five blues. The one you reach for without thinking." },
   { id: "hoodie", staple: true, name: "Classic zip-thru hoodie", price: 115, prefix: "hoodie", sizes: true, cat: "tops",
@@ -727,13 +727,13 @@ const PHOTO_PRODUCTS = [
     blurb: "Four shapes, five blues, one size. Soft jersey with a stretch back that stays put." },
 ];
 
-const PRODUCTS = [
+let PRODUCTS = [
   { id: 7, cat: "accessories", staple: true, name: "Bow headband",     price: 20, badge: "New",        loves: "4.1k", img: "band-bow-sky-blue",     sw: ["#D4DDED", "#B3CCEB", "#8DA0C2", "#5875A4", "#293046"] },
   { id: 8, cat: "accessories", staple: true, name: "Skinny headband",  price: 15,  badge: "Two for $25", loves: "2.6k", img: "band-skinny-cornflower", sw: ["#D4DDED", "#B3CCEB", "#8DA0C2", "#5875A4", "#293046"] },
   { id: 9, cat: "accessories", staple: true, name: "Wide headband",    price: 20, badge: "Low stock",  loves: "1.8k", img: "band-wide-denim-blue",  sw: ["#D4DDED", "#B3CCEB", "#8DA0C2", "#5875A4", "#293046"] },
 ];
 
-const DRESSES = [
+let DRESSES = [
   {
     id: "summer", name: "Cocktail dress", tagline: "sweet. feminine. effortless.",
     price: 119, cat: "dresses", limited: true,
@@ -777,19 +777,19 @@ const DRESSES = [
   },
 ];
 
-const DRESS_COLOURS = [
+let DRESS_COLOURS = [
   { name: "Sky blue", hex: "#7EA8DC" },
   { name: "White", hex: "#FFFFFF" },
 ];
 
-const DENIM_COLOURS = [
+let DENIM_COLOURS = [
   { name: "Denim", hex: "#2B3A5C" },
   { name: "White", hex: "#FFFFFF" },
 ];
 
-const FIVE_BLUES = COLOURS.map((c) => ({ name: c.name, hex: c.hex }));
+let FIVE_BLUES = COLOURS.map((c) => ({ name: c.name, hex: c.hex }));
 
-const SHORTS = [
+let SHORTS = [
   {
     id: "dresspant", name: "Ooch tailored pant", tagline: "effortless. flowy. timeless.",
     price: 129, cat: "bottoms", limited: true,
@@ -878,7 +878,10 @@ const SHORTS = [
   },
   {
     id: "foldshort", name: "Ooch fold back short", tagline: "soft. flattering. made to move with you.",
-    price: 45, cat: "bottoms", staple: true, colours: FIVE_BLUES,
+    /* coloursFollowPalette: this item's swatches ARE the five blues, so when the
+       palette is edited in the admin they must follow it. Without the marker the
+       item would keep a stale copy of the old palette forever. */
+    price: 45, cat: "bottoms", staple: true, colours: FIVE_BLUES, coloursFollowPalette: true,
     blurb: "Buttery soft and light enough to forget you have them on. The waistband folds over and stays put, with the ooch script centred on the back fold. Five blues, one size run, endless ways to wear them.",
     views: [
       { key: "fold-baby-blue", label: "Baby blue" },
@@ -899,7 +902,7 @@ const SHORTS = [
   },
 ];
 
-const LAYERS = [
+let LAYERS = [
   {
     id: "sstee", name: "Ooch short sleeve tee", tagline: "cute. comfy. effortless.",
     price: 49, cat: "tops", staple: true,
@@ -1044,7 +1047,7 @@ const LAYERS = [
   },
 ];
 
-const BIKINI_FEATURE = {
+let BIKINI_FEATURE = {
   id: "bikini-feature", name: "The ooch bikini", tagline: "minimal. effortless. iconic.",
   price: 79, cat: "swim",
   colours: [
@@ -1075,7 +1078,7 @@ const BIKINI_FEATURE = {
           "True to size", "Size up if in between"],
 };
 
-const SETS = [
+let SETS = [
   { id: "beach", name: "The beach set", fixed: true,
     colourNote: "Net top in white, bikini in sky blue",
     blurb: "The net top thrown over the ooch bikini. Wear it in, wear it out, no changing needed.",
@@ -1121,16 +1124,16 @@ const SETS = [
     } },
 ];
 
-const CATEGORIES = [
+let CATEGORIES = [
   { key: "tops", label: "Tops" },
   { key: "bottoms", label: "Bottoms" },
   { key: "dresses", label: "Dresses" },
   { key: "swim", label: "Swim" },
   { key: "accessories", label: "Accessories" },
 ];
-const TICKER = ["AUSTRALIAN OWNED", "DESIGNED FOR EVERYONE", "LIMITED EDITION ITEMS", "MUST HAVE STAPLES"];
+let TICKER = ["AUSTRALIAN OWNED", "DESIGNED FOR EVERYONE", "LIMITED EDITION ITEMS", "MUST HAVE STAPLES"];
 
-const QUESTIONS = [
+let QUESTIONS = [
   { key: "priority", text: "What do you put first?", options: [
       { value: "comfort", label: "Comfort", sub: "Soft, easy, all day" },
       { value: "style",   label: "Style",   sub: "Put together, always" } ] },
@@ -1139,7 +1142,7 @@ const QUESTIONS = [
       { value: "summer", label: "Summer", sub: "Light and bare arms" } ] },
 ];
 
-const RESULTS = {
+let RESULTS = {
   "comfort-winter": { name: "Cosy season",
     blurb: "Hoodies you live in and tracksuit pants that go everywhere. Warm, soft, zero effort.",
     items: [
@@ -1174,7 +1177,7 @@ const RESULTS = {
     ] },
 };
 
-const BG = ["#E4F2FC", "#BFE1F6", "#F5FBFF", "#E4F2FC"];
+let BG = ["#E4F2FC", "#BFE1F6", "#F5FBFF", "#E4F2FC"];
 
 /* ---------------- colour slider ---------------- */
 function Showcase({ product, saved, onSave, onAdd }) {
@@ -1444,7 +1447,7 @@ function SetCard({ set, onAdd }) {
   );
 }
 
-const SIZE_CHART = [
+let SIZE_CHART = [
   { au: "4",  label: "2XS", bust: 76, waist: 60, hip: 81 },
   { au: "6",  label: "XS", bust: 78, waist: 63, hip: 86 },
   { au: "8",  label: "S",  bust: 83, waist: 68, hip: 91 },
@@ -1643,7 +1646,7 @@ function SetsSheet({ onClose, onAdd }) {
   );
 }
 
-const SIG_VIEWS = [
+let SIG_VIEWS = [
   { key: "sig-front",  label: "Front" },
   { key: "sig-back",   label: "Back" },
   { key: "sig-hood",   label: "Hood" },
@@ -1651,13 +1654,13 @@ const SIG_VIEWS = [
   { key: "sig-logo",   label: "Logo" },
 ];
 
-const MODELS = [
+let MODELS = [
   { key: "sig-model-1", cap: "Worn, front" },
   { key: "sig-model-2", cap: "Worn, back" },
   { key: "sig-model-3", cap: "Worn with the pant" },
 ];
 
-const GALLERY = [
+let GALLERY = [
   ...SIG_VIEWS.map((s) => ({ key: s.key, cap: s.label })),
   ...MODELS,
 ];
@@ -1777,6 +1780,72 @@ function Signature({ onAdd, saved, onSave }) {
 }
 
 /* ---------------- page ---------------- */
+/* ==================================================================
+   CONTENT OVERRIDES — added 2026-08-10 for the admin console.
+   ------------------------------------------------------------------
+   Everything the site renders from is declared above as plain data.
+   Those declarations are now `let` rather than `const` so the admin's
+   saved content can replace them at boot, before the first render —
+   no rebuild, no redeploy, no touching this file to change a price.
+
+   DEFAULTS are snapshotted HERE, after every declaration and before
+   any override can run, so "reset to original" always has something
+   true to reset to. Deep-cloned: a shallow copy would hand the admin
+   a reference to the live data and edits would leak into the default.
+
+   Anything derived must be RECOMPUTED after an override, not copied:
+   FIVE_BLUES comes from COLOURS, GALLERY from SIG_VIEWS + MODELS. And
+   any product marked coloursFollowPalette re-points at the new blues,
+   otherwise editing the palette would leave that product on a stale copy.
+   ================================================================== */
+const clone = (v) => JSON.parse(JSON.stringify(v));
+
+export const DEFAULT_CONTENT = clone({
+  IMG, COLOURS, SIZES, PHOTO_PRODUCTS, PRODUCTS, DRESSES, DRESS_COLOURS,
+  DENIM_COLOURS, SHORTS, LAYERS, BIKINI_FEATURE, SETS, CATEGORIES, TICKER,
+  QUESTIONS, RESULTS, SIZE_CHART, SIG_VIEWS, MODELS, BG,
+});
+
+/* The order matters: assign the raw structures first, then rebuild everything
+   that is computed from them. */
+export function applyContent(doc) {
+  if (!doc || typeof doc !== "object") return false;
+  const set = (k, fn) => { if (doc[k] !== undefined && doc[k] !== null) fn(doc[k]); };
+
+  set("IMG", (v) => { IMG = v; });
+  set("COLOURS", (v) => { COLOURS = v; });
+  set("SIZES", (v) => { SIZES = v; });
+  set("PHOTO_PRODUCTS", (v) => { PHOTO_PRODUCTS = v; });
+  set("PRODUCTS", (v) => { PRODUCTS = v; });
+  set("DRESSES", (v) => { DRESSES = v; });
+  set("DRESS_COLOURS", (v) => { DRESS_COLOURS = v; });
+  set("DENIM_COLOURS", (v) => { DENIM_COLOURS = v; });
+  set("SHORTS", (v) => { SHORTS = v; });
+  set("LAYERS", (v) => { LAYERS = v; });
+  set("BIKINI_FEATURE", (v) => { BIKINI_FEATURE = v; });
+  set("SETS", (v) => { SETS = v; });
+  set("CATEGORIES", (v) => { CATEGORIES = v; });
+  set("TICKER", (v) => { TICKER = v; });
+  set("QUESTIONS", (v) => { QUESTIONS = v; });
+  set("RESULTS", (v) => { RESULTS = v; });
+  set("SIZE_CHART", (v) => { SIZE_CHART = v; });
+  set("SIG_VIEWS", (v) => { SIG_VIEWS = v; });
+  set("MODELS", (v) => { MODELS = v; });
+  set("BG", (v) => { BG = v; });
+
+  /* ---- derived, always rebuilt ---- */
+  FIVE_BLUES = (COLOURS || []).map((c) => ({ name: c.name, hex: c.hex }));
+  GALLERY = [
+    ...(SIG_VIEWS || []).map((s) => ({ key: s.key, cap: s.label })),
+    ...(MODELS || []),
+  ];
+  const follow = (list) => (list || []).map((it) =>
+    it && it.coloursFollowPalette ? { ...it, colours: FIVE_BLUES } : it);
+  SHORTS = follow(SHORTS);
+  LAYERS = follow(LAYERS);
+  return true;
+}
+
 export default function Ooch() {
   const [saved, setSaved] = useState({});
   const [bag, setBag] = useState([]);
