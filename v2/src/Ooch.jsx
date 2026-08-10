@@ -1389,7 +1389,14 @@ function SetCard({ set, onAdd }) {
   const chosen = set.choice && extra !== null ? set.choice.options[extra] : null;
   const items = chosen ? [...set.items, chosen] : set.items;
   const full = items.reduce((t, it) => t + it.price, 0);
-  const now = Math.round(full * (1 - (COPY.setDiscountPercent || 0) / 100));
+  /* ★ CLAMPED. This value is editable in the console with a plain number box,
+     and it feeds both the displayed price and the amount added to the bag. Left
+     unbounded it produced $-69 at 150%, $NaN at "abc", and a negative subtotal —
+     reachable by typing, not just through the raw editor. A shop must never
+     quote a negative price, so nonsense is treated as no discount. */
+  const pctRaw = Number(COPY.setDiscountPercent);
+  const pct = Number.isFinite(pctRaw) ? Math.min(90, Math.max(0, pctRaw)) : 0;
+  const now = Math.round(full * (1 - pct / 100));
 
   return (
     <div className="setcard">
@@ -1636,6 +1643,10 @@ function CatalogueSheet({ title, note, banner, chips, cat, onCat, photos, featur
 }
 
 function SetsSheet({ onClose, onAdd }) {
+  /* Same clamp as SetCard uses, so the header and the cards can never quote
+     different discounts — the whole point of taking the literal out. */
+  const pctRaw = Number(COPY.setDiscountPercent);
+  const pctLabel = Number.isFinite(pctRaw) ? Math.min(90, Math.max(0, pctRaw)) : 0;
   useEffect(() => {
     const esc = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", esc);
@@ -1646,7 +1657,7 @@ function SetsSheet({ onClose, onAdd }) {
     <div className="setsheet" role="dialog" aria-modal="true" aria-label="Sets">
       <div className="setstop">
         <h2>Sets</h2>
-        <p style={{ margin: 0, fontWeight: 600, color: "var(--deep)" }}>Whole outfits, 10% off</p>
+        <p style={{ margin: 0, fontWeight: 600, color: "var(--deep)" }}>Whole outfits, {pctLabel}% off</p>
         <button className="btn btn-soft" style={{ marginLeft: "auto" }} onClick={onClose}>Close</button>
       </div>
       <div className="setswrap">
@@ -1738,11 +1749,11 @@ function Signature({ onAdd, saved, onSave }) {
         <div className="sigbuy">
           <span className="price" style={{ fontSize: 24 }}>${COPY.sigHoodiePrice}</span>
           <button className="btn btn-solid"
-                  onClick={() => onAdd(`${COPY.sigHoodieName} · Sky blue · ${size}`, COPY.sigHoodiePrice)}>
+                  onClick={() => onAdd(`${COPY.sigHoodieName} · Sky blue · ${size}`, Number(COPY.sigHoodiePrice) || 0)}>
             {COPY.addToBag}
           </button>
           <button className="btn btn-soft"
-                  onClick={() => onAdd(`${COPY.sigPantName} · Sky blue · ${size}`, COPY.sigPantPrice)}>
+                  onClick={() => onAdd(`${COPY.sigPantName} · Sky blue · ${size}`, Number(COPY.sigPantPrice) || 0)}>
             {COPY.sigPantCta}
           </button>
         </div>

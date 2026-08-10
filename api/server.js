@@ -262,6 +262,18 @@ const server = http.createServer(async (req, res) => {
     let cur = { ts: 0 };
     try { cur = JSON.parse(fs.readFileSync(CONTENT_FILE, 'utf8')); } catch (e) {}
     const baseTs = Number(body.baseTs);
+    /* ⚠ ABSENCE IS NOT CONSENT. Number(undefined) is NaN and Number.isFinite(NaN)
+       is false, so omitting baseTs used to skip the staleness check entirely —
+       fail-OPEN on an unauthenticated endpoint, where the server is the only
+       guard there is. A caller that cannot say what it was editing has to be
+       refused, not trusted. */
+    if (cur && cur.ts && !Number.isFinite(baseTs)) {
+      return json(res, 400, {
+        error: 'missing_baseTs',
+        detail: 'This save did not say which version it was based on. Reload the admin and try again.',
+        serverTs: cur.ts,
+      });
+    }
     if (cur && cur.ts && Number.isFinite(baseTs) && baseTs < cur.ts) {
       return json(res, 409, {
         error: 'stale',
@@ -284,7 +296,13 @@ const server = http.createServer(async (req, res) => {
         }
       } catch (e) { /* a failed revision must not block the save */ }
 
-      const doc = { ts: Date.now(), content: body.content };
+      /* Keep ONLY keys the site understands. The comment on CONTENT_KEYS said
+         unknown keys were "reported back rather than silently kept" — they were
+         reported AND kept, so a typo lived on in the document forever and every
+         later save carried it. Report and drop. */
+      const kept = {};
+      for (const k of keys) if (known.has(k)) kept[k] = body.content[k];
+      const doc = { ts: Date.now(), content: kept };
       const tmp = CONTENT_FILE + '.tmp';
       fs.writeFileSync(tmp, JSON.stringify(doc), { mode: 0o644 });
       fs.renameSync(tmp, CONTENT_FILE);
@@ -325,11 +343,27 @@ const server = http.createServer(async (req, res) => {
     if (!/^content-\d+\.json$/.test(id)) return json(res, 400, { error: 'bad_id' });
     try {
       const raw = fs.readFileSync(path.join(REV_DIR, id), 'utf8');
-      JSON.parse(raw);                              // never restore something unparseable
+      const parsed = JSON.parse(raw);               // never restore something unparseable
+      /* ★ ARCHIVE WHAT IS LIVE FIRST. The admin tells the person "what is live
+         now is kept in history too" — and it was not: restore overwrote the
+         current document without keeping it, so restoring by mistake destroyed
+         the very thing you might want back. The DELETE path already did this. */
+      try {
+        if (fs.existsSync(CONTENT_FILE)) {
+          fs.mkdirSync(REV_DIR, { recursive: true });
+          fs.copyFileSync(CONTENT_FILE, path.join(REV_DIR, 'content-' + Date.now() + '.json'));
+        }
+      } catch (e) { /* a failed archive must not block the restore */ }
+      /* ★ STAMP A NEW ts. Writing the revision's OLD ts rewound the clock and
+         re-opened the staleness hole: a tab loaded before the restore then held
+         a NEWER baseTs, sailed past the guard, and silently undid the restore.
+         A restore is a new state of the world and must be newer than everything
+         that came before it. */
+      const doc = { ts: Date.now(), content: (parsed && parsed.content) || {} };
       const tmp = CONTENT_FILE + '.tmp';
-      fs.writeFileSync(tmp, raw, { mode: 0o644 });
+      fs.writeFileSync(tmp, JSON.stringify(doc), { mode: 0o644 });
       fs.renameSync(tmp, CONTENT_FILE);
-      return json(res, 200, { ok: true, restored: id });
+      return json(res, 200, { ok: true, restored: id, ts: doc.ts });
     } catch (e) { return json(res, 404, { error: 'not_found_or_corrupt' }); }
   }
 

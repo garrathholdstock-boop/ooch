@@ -118,7 +118,7 @@ var DEFAULTS = null, CONTENT = null, SECTION = null, DIRTY = false, IMAGES = [],
 /* Which sections exist, in the order a person would work through them, with
    plain-English names — the code's constant names mean nothing to the girls. */
 var SECTIONS = [
-  { key:"COPY",           label:"Words & prices", note:"The headings, buttons and blurbs written into the page itself — the hero, the reviews, the footer wording, the set discount, and the signature hoodie's own prices." },
+  { key:"COPY",           label:"Words & prices", note:"The hero, the drop and styled-by-you panels, the reviews, the limited/empty-category copy, the size tip, the Add to bag label, the drawer titles, the set discount, and the signature hoodie's own prices. NOT yet editable here: the footer, the bag and saved drawers, and the quiz frame — those are still written into the page." },
   { key:"PHOTO_PRODUCTS", label:"Staples",        note:"The everyday pieces with the colour slider — tee, hoodie, trackie, singlet." },
   { key:"LAYERS",         label:"Layers & tops",  note:"Pieces with a full detail page: views, close-ups, colours." },
   { key:"DRESSES",        label:"Dresses",        note:"Full detail pages." },
@@ -200,7 +200,18 @@ function loadContent(){
     /* Start from the defaults and lay any saved overrides on top, so a section
        nobody has touched still shows real content rather than an empty form. */
     CONTENT = clone(DEFAULTS);
-    Object.keys(saved).forEach(function(k){ CONTENT[k] = saved[k]; });
+    Object.keys(saved).forEach(function(k){
+      /* COPY is MERGED, matching applyContent() in the shop. Replacing it meant a
+         saved document written before a new string existed hid that string from
+         this console permanently: the shop rendered 36 keys while the admin
+         showed 32, and re-saving dropped the other 4 for good. Anything else is
+         a whole structure and is replaced wholesale, which is correct. */
+      if (k === "COPY" && saved[k] && typeof saved[k] === "object" && !Array.isArray(saved[k])) {
+        CONTENT[k] = Object.assign({}, CONTENT[k] || {}, saved[k]);
+      } else {
+        CONTENT[k] = saved[k];
+      }
+    });
     IMAGES = ((res[1] && res[1].files) || []).slice();
     /* Everything already in the shop's image library, plus anything uploaded. */
     Object.keys(CONTENT.IMG || {}).forEach(function(k){
@@ -358,6 +369,10 @@ function fields(box, obj, sectionKey){
     }
     if (typeof v === "number") {
       var num = document.createElement("input"); num.type="number"; num.value=v; num.step="any";
+      /* A percentage typed as 150 produced a NEGATIVE price on the shop and in
+         the bag. The renderer clamps too — this stops it looking accepted. */
+      if (k === "setDiscountPercent") { num.min = "0"; num.max = "90"; num.step = "1"; }
+      if (/price|Price/.test(k)) { num.min = "0"; }
       num.oninput = function(){ obj[k] = num.value===""?0:Number(num.value); markDirty(); };
       cell.appendChild(num); return;
     }
